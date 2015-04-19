@@ -152,4 +152,31 @@ public:
 
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// Class Definition: glmMatrix                                               //
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+class glmMatrix : public glmArray<T> {
+
+protected:
+	int nRows, nCols;
+
+public:
+	// Constructors ///////////////////////////////////////////////////////////
+	glmMatrix(int _nRows, int _nCols, bool initHost = false,
+			bool initDevice = false, bool initialize = false) :
+				glmArray<T>(_nRows * _nCols, initHost, initDevice,
+						initialize) {
+		nRows = _nRows;
+		nCols = _nCols;
+	}
+	glmMatrix(T *_data, int _nRows, int _nCols, bool deepCopy = false,
+			location_t dataLocation = LOCATION_HOST) :
+		glmArray<T>(_data, _nRows * _nCols, deepCopy, dataLocation) {
+		nRows = _nRows;
+		nCols = _nCols;
+	}
+};
+
 #endif /* GLMARRAY_H_ */
