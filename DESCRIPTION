@@ -1,0 +1,12 @@
+Package: gpuglm
+Type: Package
+Title: GPU-Accelerated Generalized Linear Models
+Version: 0.0.1
+Date: 2015-04-15
+Author: J. Mark Shoun
+Maintainer: J. Mark Shoun <mark.shoun@gmail.com>
+Description: Generalized Linear Model fitting using NVIDIA's CUDA platform. Requires a CUDA-capable NVIDIA graphics card.
+License: GPL (>= 2)
+Imports: Rcpp (>= 0.11.5)
+LinkingTo: Rcpp
+Suggests: testthat

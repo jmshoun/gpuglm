@@ -1,0 +1,3 @@
+useDynLib(gpuglm)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)

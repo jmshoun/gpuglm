@@ -1,0 +1,21 @@
+# History files
+.Rhistory
+.Rapp.history
+
+# Example code in package build process
+*-Ex.R
+
+# RStudio files
+.Rproj.user/
+gpuglm.Rproj
+.project
+.cproject
+
+# Object files for C++/CUDA code
+src/*.o
+src/*.so
+
+# produced vignettes
+vignettes/*.html
+vignettes/*.pdf
+
