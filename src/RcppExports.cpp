@@ -31,3 +31,16 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// test_variance
+NumericVector test_variance(NumericVector x, std::string varianceType, double k);
+RcppExport SEXP gpuglm_test_variance(SEXP xSEXP, SEXP varianceTypeSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< std::string >::type varianceType(varianceTypeSEXP);
+    Rcpp::traits::input_parameter< double >::type k(kSEXP);
+    __result = Rcpp::wrap(test_variance(x, varianceType, k));
+    return __result;
+END_RCPP
+}

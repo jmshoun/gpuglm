@@ -19,3 +19,4 @@ src/*.so
 vignettes/*.html
 vignettes/*.pdf
 
+.Rproj.user

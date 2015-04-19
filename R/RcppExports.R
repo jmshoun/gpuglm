@@ -9,3 +9,7 @@ test_inv_link <- function(x, linkType, k = 0) {
     .Call('gpuglm_test_inv_link', PACKAGE = 'gpuglm', x, linkType, k)
 }
 
+test_variance <- function(x, varianceType, k = 0) {
+    .Call('gpuglm_test_variance', PACKAGE = 'gpuglm', x, varianceType, k)
+}
+
