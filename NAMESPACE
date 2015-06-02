@@ -1,3 +1,5 @@
 useDynLib(gpuglm)
 exportPattern("^[[:alpha:]]+")
 importFrom(Rcpp, evalCpp)
+importFrom(magrittr, `%>%`)
+importFrom(magrittr, `%<>%`)

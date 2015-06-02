@@ -9,6 +9,14 @@ typedef enum {
 	LOCATION_DEVICE
 } location_t;
 
+#define POTRF_B	cusolverDnDpotrf_bufferSize
+#define POTRF 	cusolverDnDpotrf
+#define POTRS 	cusolverDnDpotrs
+#define AXPY  	cublasDaxpy
+#define GEMV  	cublasDgemv
+#define DOT   	cublasDdot
+#define AMAX	cublasIdamax
+
 const int THREADS_PER_BLOCK = 512;
 
 #endif /* GPUGLMCONFIG_H_ */

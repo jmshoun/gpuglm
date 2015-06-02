@@ -8,7 +8,7 @@
 
 using namespace Rcpp;
 
-// [[Rcpp::export(test_link)]]
+// [[Rcpp::export]]
 NumericVector test_link(NumericVector x, std::string linkType, double k = 0) {
 	glmVector<num_t> data((num_t *) &x[0], x.size(), true);
   linkFunction link = getLinkFunction(linkType);
@@ -21,7 +21,7 @@ NumericVector test_link(NumericVector x, std::string linkType, double k = 0) {
 	return wrap(result);
 }
 
-// [[Rcpp::export(test_inv_link)]]
+// [[Rcpp::export]]
 NumericVector test_inv_link(NumericVector x, std::string linkType, double k = 0) {
   glmVector<num_t> data((num_t *) &x[0], x.size(), true);
   linkFunction link = getInvLinkFunction(linkType);

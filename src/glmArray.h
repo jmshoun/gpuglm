@@ -4,10 +4,13 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 #include <cuda_runtime.h>
+#include <cublas_v2.h>
 
 #include "gpuglmConfig.h"
+#include "glmException.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Class definition: glmArray                                                //
@@ -44,9 +47,9 @@ public:
 		}
 
 		if (initDevice) {
-			cudaMalloc((void **) &deviceData, totalSize);
+			CUDA_WRAP(cudaMalloc((void **) &deviceData, totalSize));
 			if (initialize) {
-				cudaMemset((void*) deviceData, 0, totalSize);
+				CUDA_WRAP(cudaMemset((void*) deviceData, 0, totalSize));
 			}
 		} else {
 			deviceData = NULL;
@@ -73,9 +76,9 @@ public:
 			sharedDevice = false;
 		} else {
 			if (deepCopy) {
-				cudaMalloc((void **) &deviceData, totalSize);
-				cudaMemcpy(this->deviceData, _data, totalSize,
-						cudaMemcpyDeviceToDevice);
+				CUDA_WRAP(cudaMalloc((void **) &deviceData, totalSize));
+				CUDA_WRAP(cudaMemcpy(this->deviceData, _data, totalSize,
+						cudaMemcpyDeviceToDevice));
 				sharedDevice = false;
 			} else {
 				deviceData = _data;
@@ -104,23 +107,27 @@ public:
 			hostData = (T*) malloc(totalSize);
 		}
 
-		cudaMemcpy(hostData, deviceData, totalSize, cudaMemcpyDeviceToHost);
+		CUDA_WRAP(cudaMemcpy(hostData, deviceData, totalSize,
+				cudaMemcpyDeviceToHost));
 		return;
 	}
 
 	void copyHostToDevice(void) {
 		if (deviceData == NULL) {
-			cudaMalloc((void **) &deviceData, totalSize);
+			CUDA_WRAP(cudaMalloc((void **) &deviceData, totalSize));
 		}
 
-		cudaMemcpy(deviceData, hostData, totalSize, cudaMemcpyHostToDevice);
+		CUDA_WRAP(cudaMemcpy(deviceData, hostData, totalSize,
+				cudaMemcpyHostToDevice));
 		return;
 	}
 
 	// Accessor Functions /////////////////////////////////////////////////////
-	T* getHostData(void) { return hostData; };
-	T* getDeviceData(void) { return deviceData; };
-	int getLength(void) { return length; };
+	T* getHostData(void) const { return hostData; };
+	T* getDeviceData(void) const { return deviceData; };
+	int getLength(void) const { return length; };
+
+	void setSharedHost(bool _sharedHost) { sharedHost = _sharedHost; };
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -138,6 +145,7 @@ public:
 	glmVector(T *_data, int _length, bool deepCopy = false,
 			location_t dataLocation = LOCATION_HOST) :
 		glmArray<T>(_data, _length, deepCopy, dataLocation) { }
+	~glmVector() { }
 
 	// Methods that only make sense for vectors ///////////////////////////////
 	int getNumBlocks() {
@@ -171,12 +179,74 @@ public:
 		nRows = _nRows;
 		nCols = _nCols;
 	}
+
 	glmMatrix(T *_data, int _nRows, int _nCols, bool deepCopy = false,
 			location_t dataLocation = LOCATION_HOST) :
 		glmArray<T>(_data, _nRows * _nCols, deepCopy, dataLocation) {
 		nRows = _nRows;
 		nCols = _nCols;
 	}
+
+	~glmMatrix() { }
+
+	// Matrix-specific Functions //////////////////////////////////////////////
+	void copyRowFromHost(T *_data, int colNum) {
+		if (colNum < nCols) {
+			T* colAddress = this->deviceData + (colNum * nRows);
+			CUDA_WRAP(cudaMemcpy(colAddress, _data, sizeof(T) * nRows,
+					cudaMemcpyHostToDevice));
+		}
+
+		return;
+	}
+
+	glmVector<T>* getDeviceColumn(int colNum) {
+		return new glmVector<T>(this->deviceData + colNum * this->nRows,
+				this->nRows, false, LOCATION_DEVICE);
+	}
+
+	void rowProduct(cublasHandle_t handle,
+			glmVector<T> *columnVector, glmVector<T> *result) {
+		const T ONE = 1.0;
+		const T ZERO = 0.0;
+
+		CUBLAS_WRAP(GEMV(handle, CUBLAS_OP_N, this->nRows, this->nCols, &ONE,
+				this->deviceData, this->nRows, columnVector->getDeviceData(),
+				1, &ZERO, result->getDeviceData(), 1));
+
+		return;
+	}
+
+	void columnProduct(cublasHandle_t handle,
+			glmVector<T> *columnVector, glmVector<T> *result) {
+		const T ONE = 1.0;
+		const T ZERO = 0.0;
+
+		CUBLAS_WRAP(GEMV(handle, CUBLAS_OP_T, this->nRows, this->nCols, &ONE,
+				this->deviceData, this->nRows, columnVector->getDeviceData(),
+				1, &ZERO, result->getDeviceData(), 1));
+	}
+
+	// Matrix-specific Accessors //////////////////////////////////////////////
+	int getNRows(void) const { return nRows; };
+	int getNCols(void) const { return nCols; };
 };
+
+void copyDeviceToDevice(glmVector<num_t> *destination,
+		glmVector<num_t> *source);
+
+void vectorSum(glmVector<num_t> *vector, glmArray<num_t> *result,
+		int resultIndex = 0);
+
+void vectorAddScalar(glmVector<num_t> *a, num_t b, glmVector<num_t> *c);
+void vectorAdd(glmVector<num_t> *a, glmVector<num_t> *b,
+		glmVector<num_t> *c);
+void vectorDifference(glmVector<num_t> *a, glmVector<num_t> *b,
+		glmVector<num_t> *c);
+void vectorMultiply(glmVector<num_t> *a, glmVector<num_t> *b,
+		glmVector<num_t> *c);
+
+std::ostream& operator<<(std::ostream& os, const glmVector<num_t>& glmVec);
+std::ostream& operator<<(std::ostream& os, const glmMatrix<num_t>& glmMat);
 
 #endif /* GLMARRAY_H_ */

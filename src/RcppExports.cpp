@@ -5,6 +5,17 @@
 
 using namespace Rcpp;
 
+// cpp_gpu_glm
+SEXP cpp_gpu_glm(SEXP objectSexp);
+RcppExport SEXP gpuglm_cpp_gpu_glm(SEXP objectSexpSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< SEXP >::type objectSexp(objectSexpSEXP);
+    __result = Rcpp::wrap(cpp_gpu_glm(objectSexp));
+    return __result;
+END_RCPP
+}
 // test_link
 NumericVector test_link(NumericVector x, std::string linkType, double k);
 RcppExport SEXP gpuglm_test_link(SEXP xSEXP, SEXP linkTypeSEXP, SEXP kSEXP) {
