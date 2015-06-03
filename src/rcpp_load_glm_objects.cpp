@@ -102,6 +102,8 @@ SEXP cpp_gpu_glm(SEXP objectSexp) {
 				<< e.getCudaErrorCode() << ")" << std::endl;
 	} catch (glmCublasException e) {
 		Rcout << "CUBLAS ERROR: " << e.what() << std::endl;
+	} catch (glmCusolverException e) {
+		Rcout << "CUSOLVER ERROR: " << e.what() << std::endl;
 	}
 
 	return results;

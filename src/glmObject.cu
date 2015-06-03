@@ -22,8 +22,8 @@ glmObject::glmObject(glmData *_data, glmFamily *_family,
 	CUBLAS_WRAP(cublasCreate(&handle));
 	cusolverDnCreate(&solverHandle);
 
-	POTRF_B(solverHandle, CUBLAS_FILL_MODE_UPPER, this->nBeta,
-			this->hessian->getDeviceData(), this->nBeta, &workspaceSize);
+	CUSOLVER_WRAP(POTRF_B(solverHandle, CUBLAS_FILL_MODE_UPPER, this->nBeta,
+			this->hessian->getDeviceData(), this->nBeta, &workspaceSize));
 	CUDA_WRAP(cudaMalloc((void **) &workspace, sizeof(num_t) * workspaceSize));
 	CUDA_WRAP(cudaMalloc((void **) &devInfo, sizeof(int)));;
 
@@ -126,12 +126,12 @@ void glmObject::solveHessian(void) {
 	// Copy the gradient to the update vector
 	copyDeviceToDevice(this->betaDelta, this->gradient);
 
-	POTRF(this->solverHandle, CUBLAS_FILL_MODE_UPPER,
+	CUSOLVER_WRAP(POTRF(this->solverHandle, CUBLAS_FILL_MODE_UPPER,
 			this->nBeta, this->hessian->getDeviceData(), this->nBeta,
-			this->workspace, this->workspaceSize, this->devInfo);
-	POTRS(this->solverHandle, CUBLAS_FILL_MODE_UPPER,
+			this->workspace, this->workspaceSize, this->devInfo));
+	CUSOLVER_WRAP(POTRS(this->solverHandle, CUBLAS_FILL_MODE_UPPER,
 			this->nBeta, 1, this->hessian->getDeviceData(), this->nBeta,
-			this->betaDelta->getDeviceData(), this->nBeta, this->devInfo);
+			this->betaDelta->getDeviceData(), this->nBeta, this->devInfo));
 
 	return;
 }

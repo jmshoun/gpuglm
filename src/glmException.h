@@ -6,12 +6,17 @@
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <cusolverDn.h>
+
+// Base class for GLM Exceptions //////////////////////////////////////////////
 
 class glmException : public std::exception {
 	virtual const char* what() const throw() {
 		return "Generic gpuglm exception";
 	}
 };
+
+// GLM Exceptions thrown by CUDA //////////////////////////////////////////////
 
 class glmCudaException : public glmException {
 protected:
@@ -52,6 +57,8 @@ public:
 	cudaError_t getCudaErrorCode(void) const { return cudaErrorCode; };
 };
 
+// GLM Exceptions thrown by cuBLAS ////////////////////////////////////////////
+
 class glmCublasException : public glmException {
 protected:
 	cublasStatus_t cublasErrorCode;
@@ -80,8 +87,43 @@ public:
 		default:
 			return "Unspecified Error - Consult Documentation";
 		}
-	};
+	}
 };
+
+// GLM Exceptions thrown by cusolver //////////////////////////////////////////
+
+class glmCusolverException : public glmException {
+protected:
+	cusolverStatus_t cusolverErrorCode;
+
+public:
+	glmCusolverException(cusolverStatus_t _cusolverErrorCode) {
+		cusolverErrorCode = _cusolverErrorCode;
+	};
+
+	const char* what() const throw() {
+		switch(cusolverErrorCode) {
+		case CUSOLVER_STATUS_NOT_INITIALIZED:
+			return "Cusolver Not Initialized";
+		case CUSOLVER_STATUS_ALLOC_FAILED:
+			return "Resource Allocation Failed";
+		case CUSOLVER_STATUS_INVALID_VALUE:
+			return "Invalid Value";
+		case CUSOLVER_STATUS_ARCH_MISMATCH:
+			return "Architecture Mismatch";
+		case CUSOLVER_STATUS_EXECUTION_FAILED:
+			return "Execution Failed";
+		case CUSOLVER_STATUS_INTERNAL_ERROR:
+			return "Internal Error";
+		case CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED:
+			return "Matrix Type Not Supported";
+		default:
+			return "Unspecified Error - Consult Documentation";
+		}
+	}
+};
+
+// Macros to wrap calls to CUDA/CUBLAS/CUSOLVER and throw exceptions //////////
 
 #define CUDA_WRAP(value) {													\
 	cudaError_t _m_cudaStat = value;										\
@@ -94,5 +136,12 @@ public:
 	if (_m_cublasStat != CUBLAS_STATUS_SUCCESS) {							\
 		throw glmCublasException(_m_cublasStat);							\
 	} }
+
+#define CUSOLVER_WRAP(value) {												\
+	cusolverStatus_t _m_cusolverStat = value;								\
+	if (_m_cusolverStat != CUSOLVER_STATUS_SUCCESS) {						\
+		throw glmCusolverException(_m_cusolverStat);						\
+	} }
+
 
 #endif /* GLMEXCEPTION_H_ */

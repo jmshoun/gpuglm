@@ -8,8 +8,7 @@ glmData::glmData(int nRows, num_t *_y, num_t *_xNumeric, int nColsNumeric,
 	y = new glmVector<num_t>(_y, nRows);
 	y->copyHostToDevice();
 
-	// xNumeric is a bit more complicated, since the matrix of X-data isn't
-	// guaranteed to be stored in a contiguous block of host memory
+	// xNumeric is fairly straightforward as well
 	xNumeric = new glmMatrix<num_t>(_xNumeric, nRows, nColsNumeric);
 	xNumeric->copyHostToDevice();
 
@@ -33,10 +32,10 @@ glmData::~glmData() {
 }
 
 int glmData::getNObs(void) {
-	return this->y->getLength();
+	return y->getLength();
 }
 
 int glmData::getNBeta(void) {
-	int numXNumeric = this->xNumeric->getNCols();
+	int numXNumeric = xNumeric->getNCols();
 	return numXNumeric + 1;	// +1 is for the intercept
 }
