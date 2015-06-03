@@ -6,58 +6,59 @@
 // Device-side Kernels For Variance Functions                                //
 ///////////////////////////////////////////////////////////////////////////////
 
-__global__ void cudaBinomVar(int n, num_t* x) {
+__global__ void cudaBinomVar(int n, num_t* input, num_t* output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
 #ifdef CAVE_FASTMATH
-		x[i] = __fmul_rn(x[i], __fsub_rn(1.0, x[i]));
+		output[i] = __fmul_rn(input[i], __fsub_rn(1.0, input[i]));
 #else
-		x[i] = x[i] * (1.0 - x[i]);
+		output[i] = input[i] * (1.0 - input[i]);
 #endif
 	}
 	return;
 }
 
-__global__ void cudaNegBinVar(int n, num_t* x, num_t k) {
+__global__ void cudaNegBinVar(int n, num_t* input, num_t* output, num_t k) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
 #ifdef CAVE_FASTMATH
-		x[i] = __fadd_rn(x[i], __fdividef(__fmul_rn(x[i], x[i]), k));
+		output[i] = __fadd_rn(input[i],
+				__fdividef(__fmul_rn(input[i], input[i]), k));
 #else
-		x[i] = x[i] + (x[i] * x[i]) / (k);
+		output[i] = input[i] + (input[i] * input[i]) / (k);
 #endif
 	}
 	return;
 }
 
-__global__ void cudaSqVar(int n, num_t* x) {
+__global__ void cudaSqVar(int n, num_t* input, num_t* output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
 #ifdef CAVE_FASTMATH
-		x[i] = __fmul_rn(x[i], x[i]);
+		output[i] = __fmul_rn(input[i], input[i]);
 #else
-		x[i] = x[i] * x[i];
+		output[i] = input[i] * input[i];
 #endif
 	}
 	return;
 }
 
-__global__ void cudaCubeVar(int n, num_t* x) {
+__global__ void cudaCubeVar(int n, num_t* input, num_t* output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
 #ifdef CAVE_FASTMATH
-		x[i] = __fmul_rn(x[i], __fmul_rn(x[i], x[i]));
+		output[i] = __fmul_rn(input[i], __fmul_rn(input[i], input[i]));
 #else
-		x[i] = x[i] * x[i] * x[i];
+		output[i] = input[i] * input[i] * input[i];
 #endif
 	}
 	return;
 }
 
-__global__ void cudaConstantVar(int n, num_t* x) {
+__global__ void cudaConstantVar(int n, num_t* input, num_t* output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
-		x[i] = 1.0;
+		output[i] = 1.0;
 	}
 	return;
 }
@@ -66,53 +67,54 @@ __global__ void cudaConstantVar(int n, num_t* x) {
 // Host-side Variance Functions                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-void vapply(glmVector<num_t> *x, void (*cudaKernel)(int, num_t*)) {
-	int numBlocks = x->getNumBlocks();
+void vapply(glmVector<num_t> *input, glmVector<num_t> *output,
+		void (*cudaKernel)(int, num_t*, num_t*)) {
+	int numBlocks = input->getNumBlocks();
 
-	(*cudaKernel)<<<numBlocks, THREADS_PER_BLOCK>>>(x->getLength(),
-			x->getDeviceData());
-
-	return;
-}
-
-void vapply(glmVector<num_t> *x, void (*cudaKernel)(int, num_t*, num_t),
-		num_t k) {
-	int numBlocks = x->getNumBlocks();
-
-	(*cudaKernel)<<<numBlocks, THREADS_PER_BLOCK>>>(x->getLength(),
-			x->getDeviceData(), k);
+	(*cudaKernel)<<<numBlocks, THREADS_PER_BLOCK>>>(input->getLength(),
+			input->getDeviceData(), output->getDeviceData());
 
 	return;
 }
 
-void varBinom(glmVector<num_t> *x, num_t k) {
-	vapply(x, cudaBinomVar);
+void vapply(glmVector<num_t> *input, glmVector<num_t> *output,
+		void (*cudaKernel)(int, num_t*, num_t*, num_t), num_t k) {
+	int numBlocks = input->getNumBlocks();
+
+	(*cudaKernel)<<<numBlocks, THREADS_PER_BLOCK>>>(input->getLength(),
+			input->getDeviceData(), output->getDeviceData(), k);
+
 	return;
 }
 
-void varNegBin(glmVector<num_t> *x, num_t k) {
-	vapply(x, cudaNegBinVar, k);
+void varBinom(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	vapply(input, output, cudaBinomVar);
 	return;
 }
 
-void varSq(glmVector<num_t> *x, num_t k) {
-	vapply(x, cudaSqVar);
+void varNegBin(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	vapply(input, output, cudaNegBinVar, k);
 	return;
 }
 
-void varCube(glmVector<num_t> *x, num_t k) {
-	vapply(x, cudaCubeVar);
+void varSq(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	vapply(input, output, cudaSqVar);
 	return;
 }
 
-void varConstant(glmVector<num_t> *x, num_t k) {
-	vapply(x, cudaConstantVar);
+void varCube(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	vapply(input, output, cudaCubeVar);
+	return;
+}
+
+void varConstant(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	vapply(input, output, cudaConstantVar);
 	return;
 }
 
 // Special cases //////////////////////////////////////////////////////////////
 
-void varIdentity(glmVector<num_t> *x, num_t k) {
+void varIdentity(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
 	return;
 }
 

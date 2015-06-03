@@ -7,21 +7,29 @@
 #include "gpuglmConfig.h"
 #include "glmArray.h"
 
-typedef void (*linkFunction)(glmVector<num_t>*, num_t);
+typedef void (*linkFunction)(glmVector<num_t>*, glmVector<num_t>*, num_t);
 
 // Link Functions /////////////////////////////////////////////////////////////
-void linkLogit(glmVector<num_t> *x, num_t k = 0.0);
-void linkLog(glmVector<num_t> *x, num_t k = 0.0);
-void linkSqRecip(glmVector<num_t> *x, num_t k = 0.0);
-void linkNegBin(glmVector<num_t> *x, num_t k);
-void linkIdentity(glmVector<num_t> *x, num_t k = 0.0);
-void linkRecip(glmVector<num_t> *x, num_t k = 0.0);
+void linkLogit(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkLog(glmVector<num_t> *input, glmVector<num_t> *output, num_t k = 0.0);
+void linkSqRecip(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkNegBin(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k);
+void linkIdentity(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkRecip(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
 
 // Inverse Link Functions /////////////////////////////////////////////////////
-void linkInvLogit(glmVector<num_t> *x, num_t k = 0.0);
-void linkExp(glmVector<num_t> *x, num_t k = 0.0);
-void linkSqrtRecip(glmVector<num_t> *x, num_t k = 0.0);
-void linkInvNegBin(glmVector<num_t> *x, num_t k);
+void linkInvLogit(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkExp(glmVector<num_t> *input, glmVector<num_t> *output, num_t k = 0.0);
+void linkSqrtRecip(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkInvNegBin(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k);
 // The identity and reciprocal functions are involutions, so they don't require
 // separate inverse functions.
 

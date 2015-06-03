@@ -14,7 +14,7 @@ NumericVector test_link(NumericVector x, std::string linkType, double k = 0) {
   linkFunction link = getLinkFunction(linkType);
 
 	data.copyHostToDevice();
-	link(&data, k);
+	link(&data, &data, k);
 	data.copyDeviceToHost();
   
 	std::vector<num_t> result(data.getHostData(), data.getHostData() + data.getLength());
@@ -27,7 +27,7 @@ NumericVector test_inv_link(NumericVector x, std::string linkType, double k = 0)
   linkFunction link = getInvLinkFunction(linkType);
 
 	data.copyHostToDevice();
-	link(&data, k);
+	link(&data, &data, k);
 	data.copyDeviceToHost();
   
 	std::vector<num_t> result(data.getHostData(), data.getHostData() + data.getLength());
@@ -40,8 +40,8 @@ NumericVector test_variance(NumericVector x, std::string varianceType, double k 
   varianceFunction variance = getVarianceFunction(varianceType);
 
   data.copyHostToDevice();
-	variance(&data, k);
-	data.copyDeviceToHost();
+  variance(&data, &data, k);
+  data.copyDeviceToHost();
   
 	std::vector<num_t> result(data.getHostData(), data.getHostData() + data.getLength());
 	return wrap(result);

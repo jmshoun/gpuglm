@@ -52,68 +52,65 @@ glmObject::~glmObject() {
 
 void glmObject::solve(void) {
 	num_t minDelta = 1000.0;
-	num_t *hostBetaDelta = this->betaDelta->getHostData();
+	num_t *hostBetaDelta = betaDelta->getHostData();
 
-	while ((minDelta > this->control->getTolerance()) &&
-			(this->results->getNumIterations() <
-					this->control->getMaxIterations())) {
-		this->results->incrementNumIterations();
+	while ((minDelta > control->getTolerance()) &&
+			(results->getNumIterations() < control->getMaxIterations())) {
+		results->incrementNumIterations();
 
 		this->updateGradient();
 		this->updateHessian();
 		this->solveHessian();
-		vectorAdd(this->results->getBeta(), this->betaDelta,
-				this->results->getBeta());
+		vectorAdd(results->getBeta(), betaDelta, results->getBeta());
 
-		this->betaDelta->copyDeviceToHost();
+		betaDelta->copyDeviceToHost();
 		minDelta = hostBetaDelta[0];
-		for (int i = 1; i < this->nBeta; i++) {
+		for (int i = 1; i < nBeta; i++) {
 			minDelta = hostBetaDelta[i] > minDelta ?
 					hostBetaDelta[i] : minDelta;
 		}
 	}
 
-	if (minDelta < this->control->getTolerance()) {
-		this->results->setConverged(true);
+	if (minDelta < control->getTolerance()) {
+		results->setConverged(true);
 	}
 
 	return;
 }
 
 void glmObject::updateHessian(void) {
-	glmMatrix<num_t> *xNumeric = this->data->getXNumeric();
+	glmMatrix<num_t> *xNumeric = data->getXNumeric();
 	glmVector<num_t> *xColumn;
-	varianceFunction variance = this->family->getVariance();
+	varianceFunction variance = family->getVariance();
 	int numericCols = xNumeric->getNCols();
 
 	CUBLAS_WRAP(cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
 
 	// Calculate the variance of the observations
-	copyDeviceToDevice(this->yVar, this->predictions);
-	(*variance)(this->yVar, 0.0);
+	(*variance)(predictions, yVar, 0.0);
 
 	// First, handle the intercept
-	vectorSum(this->yVar, this->hessian, this->nBeta * this->nBeta - 1);
+	vectorSum(yVar, hessian, nBeta * nBeta - 1);
 
 	// Next, take care of the intercept * numeric terms
 	for (int i = 0; i < xNumeric->getNCols(); i++) {
-		CUBLAS_WRAP(DOT(this->handle, this->nObs,
-				this->yVar->getDeviceData(), 1,
-				xNumeric->getDeviceData() + this->nObs * i, 1,
-				this->hessian->getDeviceData() + this->nBeta * (this->nBeta - 1) + i));
+		CUBLAS_WRAP(DOT(handle, nObs,
+				yVar->getDeviceData(), 1,
+				xNumeric->getDeviceData() + nObs * i, 1,
+				hessian->getDeviceData() + nBeta * (nBeta - 1) + i));
 	}
 
 	// Finally, handle the numeric * numeric terms
 	for (int i = 0; i < numericCols; i++) {
 		xColumn = xNumeric->getDeviceColumn(i);
-		vectorMultiply(this->yVar, xColumn, this->xScratch);
+		vectorMultiply(yVar, xColumn, xScratch);
 		delete xColumn;
 
 		for (int j = i; j < numericCols; j++) {
-			CUBLAS_WRAP(DOT(this->handle, this->nObs,
-					this->xScratch->getDeviceData(), 1,
-					xNumeric->getDeviceData() + this->nObs * j, 1,
-					this->hessian->getDeviceData() + j * this->nBeta + i));
+			CUBLAS_WRAP(DOT(handle, nObs,
+					xScratch->getDeviceData(), 1,
+					xNumeric->getDeviceData() + nObs * j, 1,
+					hessian->getDeviceData() + j * nBeta + i));
 		}
 	}
 
@@ -124,47 +121,46 @@ void glmObject::updateHessian(void) {
 
 void glmObject::solveHessian(void) {
 	// Copy the gradient to the update vector
-	copyDeviceToDevice(this->betaDelta, this->gradient);
+	copyDeviceToDevice(betaDelta, gradient);
 
-	CUSOLVER_WRAP(POTRF(this->solverHandle, CUBLAS_FILL_MODE_UPPER,
-			this->nBeta, this->hessian->getDeviceData(), this->nBeta,
-			this->workspace, this->workspaceSize, this->devInfo));
-	CUSOLVER_WRAP(POTRS(this->solverHandle, CUBLAS_FILL_MODE_UPPER,
-			this->nBeta, 1, this->hessian->getDeviceData(), this->nBeta,
-			this->betaDelta->getDeviceData(), this->nBeta, this->devInfo));
+	CUSOLVER_WRAP(POTRF(solverHandle, CUBLAS_FILL_MODE_UPPER,
+			nBeta, hessian->getDeviceData(), nBeta,
+			workspace, workspaceSize, devInfo));
+	CUSOLVER_WRAP(POTRS(solverHandle, CUBLAS_FILL_MODE_UPPER,
+			nBeta, 1, hessian->getDeviceData(), nBeta,
+			betaDelta->getDeviceData(), nBeta, devInfo));
 
 	return;
 }
 
 void glmObject::updateGradient(void) {
-	glmMatrix<num_t> *xNumeric = this->data->getXNumeric();
-	glmVector<num_t> *y = this->data->getY();
+	glmMatrix<num_t> *xNumeric = data->getXNumeric();
+	glmVector<num_t> *y = data->getY();
 
 	this->updatePredictions();
 
 	// Calculate yDelta as y - yHat
-	vectorDifference(y, this->predictions, this->yDelta);
+	vectorDifference(y, predictions, yDelta);
 
 	// Calculate yDelta %*% xNumeric
-	xNumeric->columnProduct(this->handle, this->yDelta, this->gradient);
+	xNumeric->columnProduct(handle, yDelta, gradient);
 
 	// Calculate the intercept term of the gradient
-	vectorSum(this->yDelta, this->gradient, this->nBeta - 1);
+	vectorSum(yDelta, gradient, nBeta - 1);
 
 	return;
 }
 
 void glmObject::updatePredictions(void) {
-	glmMatrix<num_t> *xNumeric = this->data->getXNumeric();
-	glmVector<num_t> *beta = this->results->getBeta();
-	linkFunction invLink = this->family->getInvLink();
+	glmMatrix<num_t> *xNumeric = data->getXNumeric();
+	glmVector<num_t> *beta = results->getBeta();
+	linkFunction invLink = family->getInvLink();
 
-	xNumeric->rowProduct(this->handle, beta, this->predictions);
+	xNumeric->rowProduct(handle, beta, predictions);
 	// Add in the intercept
 	beta->copyDeviceToHost();
-	vectorAddScalar(this->predictions, beta->getHostData()[this->nBeta - 1],
-			this->predictions);
-	(*invLink)(this->predictions, 0.0);
+	vectorAddScalar(predictions, beta->getHostData()[nBeta - 1], predictions);
+	(*invLink)(predictions, predictions, 0.0);
 
 	return;
 }

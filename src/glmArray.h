@@ -232,12 +232,17 @@ public:
 	int getNCols(void) const { return nCols; };
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// glmVector Utility Functions ////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Copying ////////////////////////////////////////////////////////////////////
 void copyDeviceToDevice(glmVector<num_t> *destination,
 		glmVector<num_t> *source);
 
+// Vector Arithmetic //////////////////////////////////////////////////////////
 void vectorSum(glmVector<num_t> *vector, glmArray<num_t> *result,
 		int resultIndex = 0);
-
 void vectorAddScalar(glmVector<num_t> *a, num_t b, glmVector<num_t> *c);
 void vectorAdd(glmVector<num_t> *a, glmVector<num_t> *b,
 		glmVector<num_t> *c);
@@ -246,6 +251,7 @@ void vectorDifference(glmVector<num_t> *a, glmVector<num_t> *b,
 void vectorMultiply(glmVector<num_t> *a, glmVector<num_t> *b,
 		glmVector<num_t> *c);
 
+// Printing ///////////////////////////////////////////////////////////////////
 std::ostream& operator<<(std::ostream& os, const glmVector<num_t>& glmVec);
 std::ostream& operator<<(std::ostream& os, const glmMatrix<num_t>& glmMat);
 
