@@ -81,6 +81,7 @@ void glmObject::solve(void) {
 void glmObject::updateHessian(void) {
 	glmMatrix<num_t> *xNumeric = data->getXNumeric();
 	glmVector<num_t> *xColumn;
+	glmVector<num_t> *weights = data->getWeights();
 	varianceFunction variance = family->getVariance();
 	int numericCols = xNumeric->getNCols();
 
@@ -88,6 +89,10 @@ void glmObject::updateHessian(void) {
 
 	// Calculate the variance of the observations
 	(*variance)(predictions, yVar, 0.0);
+	// Handle weights of yVar if necessary
+	if (weights != NULL) {
+			vectorMultiply(yVar, weights, yVar);
+		}
 
 	// First, handle the intercept
 	vectorSum(yVar, hessian, nBeta * nBeta - 1);
@@ -136,11 +141,17 @@ void glmObject::solveHessian(void) {
 void glmObject::updateGradient(void) {
 	glmMatrix<num_t> *xNumeric = data->getXNumeric();
 	glmVector<num_t> *y = data->getY();
+	glmVector<num_t> *weights = data->getWeights();
 
 	this->updatePredictions();
 
 	// Calculate yDelta as y - yHat
 	vectorDifference(y, predictions, yDelta);
+
+	// Add weights to yDelta
+	if (weights != NULL) {
+		vectorMultiply(yDelta, weights, yDelta);
+	}
 
 	// Calculate yDelta %*% xNumeric
 	xNumeric->columnProduct(handle, yDelta, gradient);
