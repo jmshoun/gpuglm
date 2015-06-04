@@ -41,7 +41,7 @@
   }
   
   .get_numeric_terms <- function(term.names) {
-    sapply(term.names, function(term.name) {
+    lapply(term.names, function(term.name) {
       .extract_factor(term.name)
     })
   }

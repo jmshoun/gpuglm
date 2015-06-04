@@ -12,7 +12,7 @@ protected:
 
 public:
 	// Constructors / Destructors /////////////////////////////////////////////
-	glmData(int nRows, num_t *_y, num_t *_xNumeric, int nColsNumeric,
+	glmData(int nRows, num_t *_y, num_t **_xNumeric, int nColsNumeric,
 			num_t *_weights = NULL);
 	~glmData();
 

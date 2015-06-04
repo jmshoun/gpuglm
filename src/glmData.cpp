@@ -2,15 +2,18 @@
 
 #include <cuda_runtime.h>
 
-glmData::glmData(int nRows, num_t *_y, num_t *_xNumeric, int nColsNumeric,
+glmData::glmData(int nRows, num_t *_y, num_t **_xNumeric, int nColsNumeric,
 			num_t *_weights) {
 	// Handle y first, which is fairly straightforward
 	y = new glmVector<num_t>(_y, nRows);
 	y->copyHostToDevice();
 
-	// xNumeric is fairly straightforward as well
-	xNumeric = new glmMatrix<num_t>(_xNumeric, nRows, nColsNumeric);
-	xNumeric->copyHostToDevice();
+	// xNumeric is a little trickier, since the columns may not be stored
+	// in a contiguous block
+	xNumeric = new glmMatrix<num_t>(nRows, nColsNumeric, false, true);
+	for (int i = 0; i < nColsNumeric; i++) {
+		xNumeric->copyRowFromHost(_xNumeric[i], i);
+	}
 
 	// Handle the special case of weights
 	if (_weights == NULL) {

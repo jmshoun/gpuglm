@@ -13,17 +13,27 @@ template <> glmFamily* Rcpp::as(SEXP familySexp) {
 }
 
 template <> glmData* Rcpp::as(SEXP dataSexp) {
+	glmData* results;
+
 	List dataList = List(dataSexp);
 	List terms = dataList["terms"];
+	List xNumericTerms = terms["numeric.terms"];
+	int nXNumeric = xNumericTerms.size();
 
 	NumericVector y = as<NumericVector>(dataList["response"]);
-	NumericMatrix xNumeric = as<NumericMatrix>(terms["numeric.terms"]);
+	NumericVector xTemp;
+	NumericVector weights;
 
 	num_t *yPointer = (num_t*) (&y[0]);
-	num_t *xNumericPointer = (num_t*) (&xNumeric[0]);
-
-	NumericVector weights;
+	num_t **xNumericPointer;
 	num_t *weightsPointer;
+
+	xNumericPointer = (num_t **) malloc(nXNumeric * sizeof(num_t *));
+	for (int i = 0; i < nXNumeric; i++) {
+		xTemp = as<NumericVector>(xNumericTerms[i]);
+		xNumericPointer[i] = (num_t*) (&xTemp[0]);
+	}
+
 	if (dataList.containsElementNamed("weights")) {
 		weights = as<NumericVector>(dataList["weights"]);
 		weightsPointer = (num_t*) (&weights[0]);
@@ -31,8 +41,12 @@ template <> glmData* Rcpp::as(SEXP dataSexp) {
 		weightsPointer = NULL;
 	}
 
-	return new glmData(xNumeric.nrow(), yPointer, xNumericPointer,
-			xNumeric.ncol(), weightsPointer);
+	results = new glmData(y.length(), yPointer, xNumericPointer,
+			nXNumeric, weightsPointer);
+
+	free(xNumericPointer);
+
+	return results;
 }
 
 template <> glmControl* Rcpp::as(SEXP controlSexp) {

@@ -45,7 +45,7 @@ glmObject::~glmObject() {
 	CUDA_WRAP(cudaFree(workspace));
 	CUDA_WRAP(cudaFree(devInfo));
 	CUBLAS_WRAP(cublasDestroy(handle));
-	cusolverDnDestroy(solverHandle);
+	CUSOLVER_WRAP(cusolverDnDestroy(solverHandle));
 }
 
 // Updating Functions /////////////////////////////////////////////////////////
