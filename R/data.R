@@ -7,7 +7,8 @@
     glm.data$response <- .get_response(factor.matrix)
     glm.data$terms <- .get_terms(factor.matrix)
     if (!is.null(weights)) {
-      glm.data$weights <- .get_weights()
+      glm.data$weights <- .get_weights() %>%
+        .validate_weights(length(glm.data$terms[[1]]))
     }
     
     glm.data
@@ -65,4 +66,21 @@
   }
   
   .main()
+}
+
+.validate_weights <- function(weights, data.length) {
+  if (length(weights) != data.length) {
+    stop('Weights must be the same length as data')
+  }
+  
+  min.weight <- min(weights)
+  
+  if (min.weight < 0) {
+    warn('Negative weights found in data. Setting negative weights to zero...')
+    weights <- pmax(weights, 0)
+  } else if (min.weight == 0) {
+    warn('Zero weights found in data. Zero weight observations will be ignored...')
+  }
+  
+  weights
 }
