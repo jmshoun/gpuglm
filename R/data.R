@@ -44,7 +44,8 @@
   .get_numeric_terms <- function(term.names) {
     lapply(term.names, function(term.name) {
       .extract_factor(term.name)
-    })
+    }) %>%
+      magrittr::set_names(term.names)
   }
   
   .get_weights <- function() {

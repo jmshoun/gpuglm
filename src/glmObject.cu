@@ -101,8 +101,8 @@ void glmObject::updateHessian(void) {
 	for (int i = 0; i < xNumeric->getNCols(); i++) {
 		CUBLAS_WRAP(DOT(handle, nObs,
 				yVar->getDeviceData(), 1,
-				xNumeric->getDeviceData() + nObs * i, 1,
-				hessian->getDeviceData() + nBeta * (nBeta - 1) + i));
+				xNumeric->getDeviceElement(0, i), 1,
+				hessian->getDeviceElement(nBeta - 1, i)));
 	}
 
 	// Finally, handle the numeric * numeric terms
@@ -114,8 +114,8 @@ void glmObject::updateHessian(void) {
 		for (int j = i; j < numericCols; j++) {
 			CUBLAS_WRAP(DOT(handle, nObs,
 					xScratch->getDeviceData(), 1,
-					xNumeric->getDeviceData() + nObs * j, 1,
-					hessian->getDeviceData() + j * nBeta + i));
+					xNumeric->getDeviceElement(0, j), 1,
+					hessian->getDeviceElement(j, i)));
 		}
 	}
 

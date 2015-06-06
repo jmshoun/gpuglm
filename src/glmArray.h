@@ -158,6 +158,13 @@ public:
 		}
 	}
 
+	T* getHostElement (int index) const {
+		return this->hostData + index;
+	};
+
+	T* getDeviceElement (int index) const {
+		return this->deviceData + index;
+	};
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -230,6 +237,14 @@ public:
 	// Matrix-specific Accessors //////////////////////////////////////////////
 	int getNRows(void) const { return nRows; };
 	int getNCols(void) const { return nCols; };
+
+	T* getHostElement(int row, int column) const {
+		return this->hostData + column * nRows + row;
+	};
+
+	T* getDeviceElement(int row, int column) const {
+		return this->deviceData + column * nRows + row;
+	};
 };
 
 ///////////////////////////////////////////////////////////////////////////////

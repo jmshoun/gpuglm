@@ -33,6 +33,9 @@ void linkInvNegBin(glmVector<num_t> *input,
 // The identity and reciprocal functions are involutions, so they don't require
 // separate inverse functions.
 
+// Derivatives of Inverse Link Functions //////////////////////////////////////
+
+
 // Link and Inverse Link Function Generators //////////////////////////////////
 linkFunction getLinkFunction(std::string linkType);
 linkFunction getInvLinkFunction(std::string linkType);

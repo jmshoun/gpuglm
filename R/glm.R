@@ -39,7 +39,7 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL,
     intercept <- old.beta[length(old.beta)] %>%
       magrittr::set_names('(Intercept)')
     numeric.betas <- old.beta[1:(length(old.beta) - 1)] %>%
-      magrittr::set_names(colnames(data$terms$numeric.terms))
+      magrittr::set_names(names(data$terms$numeric.terms))
     results$beta <- list(intercept=intercept,
                          numeric=numeric.betas)
     attr(results, 'class') <- 'gpuglm'
