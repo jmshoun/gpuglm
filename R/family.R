@@ -41,7 +41,7 @@
 ##'   \item \code{negative binomial}
 ##' }
 ##' @return An object of class \code{gpuglm_family}.
-gpuglm_family <- function(family, link='identity', variance='constant') {
+gpuglm_family <- function(family, link='identity', variance='constant', scale.parameter=0.0) {
   if (!missing(family)) {
     .validate_family_parameter(family, 'family')
     
@@ -54,7 +54,8 @@ gpuglm_family <- function(family, link='identity', variance='constant') {
   
   structure(list(link=tolower(link),
                  variance=tolower(variance),
-                 canonical=.determine_canonicity(link, variance),
+                 is.canonical=.determine_canonicity(link, variance),
+                 scale.parameter=scale.parameter,
                  class='gpuglm_family'))
 }
 

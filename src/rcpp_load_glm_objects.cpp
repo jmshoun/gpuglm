@@ -8,8 +8,10 @@ template <> glmFamily* Rcpp::as(SEXP familySexp) {
 	List familyList = List(familySexp);
 	std::string linkName = as<std::string>(familyList["link"]);
 	std::string varianceName = as<std::string>(familyList["variance"]);
+	bool isCanonical = as<bool>(familyList["is.canonical"]);
+	num_t scaleParameter = (num_t) as<double>(familyList["scale.parameter"]);
 
-	return new glmFamily(linkName, varianceName);
+	return new glmFamily(linkName, varianceName, isCanonical, scaleParameter);
 }
 
 template <> glmData* Rcpp::as(SEXP dataSexp) {

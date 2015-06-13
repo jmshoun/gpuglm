@@ -52,6 +52,6 @@ void linkPowerDerivative(glmVector<num_t> *input,
 // Link and Inverse Link Function Generators //////////////////////////////////
 linkFunction getLinkFunction(std::string linkType);
 linkFunction getInvLinkFunction(std::string linkType);
-linkFunction getLinkDerivativeFunciton(std::string linkType);
+linkFunction getLinkDerivativeFunction(std::string linkType);
 
 #endif /* LINKFUNCTIONS_H_ */
