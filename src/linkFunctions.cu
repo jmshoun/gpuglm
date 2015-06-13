@@ -21,6 +21,7 @@ __global__ void cudaLogit(int n, num_t *input, num_t *output) {
 	}
 	return;
 }
+
 __global__ void cudaLog(int n, num_t *input, num_t *output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
@@ -32,6 +33,7 @@ __global__ void cudaLog(int n, num_t *input, num_t *output) {
 	}
 	return;
 }
+
 __global__ void cudaRecip(int n, num_t *input, num_t *output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
@@ -43,6 +45,7 @@ __global__ void cudaRecip(int n, num_t *input, num_t *output) {
 	}
 	return;
 }
+
 __global__ void cudaSqRecip(int n, num_t *input, num_t *output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
@@ -54,6 +57,7 @@ __global__ void cudaSqRecip(int n, num_t *input, num_t *output) {
 	}
 	return;
 }
+
 __global__ void cudaNegBin(int n, num_t *input, num_t *output, num_t k) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
@@ -61,6 +65,18 @@ __global__ void cudaNegBin(int n, num_t *input, num_t *output, num_t k) {
 		output[i] = __logf(__fdividef(input[i], __fadd_rn(input[i], k)));
 #else
 		output[i] = log(input[i] / (k + input[i]));
+#endif
+	}
+	return;
+}
+
+__global__ void cudaPower(int n, num_t *input, num_t *output, num_t k) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+#ifdef GPUGLM_FASTMATH
+		output[i] = __powf(input[i],  k);
+#else
+		output[i] = pow(input[i], k);
 #endif
 	}
 	return;
@@ -79,6 +95,7 @@ __global__ void cudaInvLogit(int n, num_t *input, num_t *output) {
 	}
 	return;
 }
+
 __global__ void cudaExp(int n, num_t *input, num_t *output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
@@ -90,6 +107,7 @@ __global__ void cudaExp(int n, num_t *input, num_t *output) {
 	}
 	return;
 }
+
 __global__ void cudaSqrtRecip(int n, num_t *input, num_t *output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
@@ -101,6 +119,7 @@ __global__ void cudaSqrtRecip(int n, num_t *input, num_t *output) {
 	}
 	return;
 }
+
 __global__ void cudaInvNegBin(int n, num_t *input, num_t *output, num_t k) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	float p;
@@ -111,6 +130,79 @@ __global__ void cudaInvNegBin(int n, num_t *input, num_t *output, num_t k) {
 #else
 		p = exp(input[i]);
 		output[i] = (p * k) / (1 - p);
+#endif
+	}
+	return;
+}
+
+// Derivatives of Link Functions //////////////////////////////////////////////
+
+__global__ void cudaConstant(int n, num_t *input, num_t *output) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+		output[i] = 1.0;
+	}
+	return;
+}
+
+__global__ void cudaLogitDerivative(int n, num_t *input, num_t *output) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+#ifdef GPUGLM_FASTMATH
+		output[i] = __frcp_rn(__fmul_rn(input[i], __fsub_rn(1.0, input[i])));
+#else
+		output[i] = 1 / (input[i] * (1 - input[i]));
+#endif
+	}
+	return;
+}
+
+__global__ void cudaRecipDerivative(int n, num_t *input, num_t *output) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+#ifdef GPUGLM_FASTMATH
+		output[i] = __fdividef(-1.0, __fmul_rn(input[i], input[i]));
+#else
+		output[i] = -1.0 / (input[i] * input[i]);
+#endif
+	}
+	return;
+}
+
+__global__ void cudaSqrtRecipDerivative(int n, num_t *input, num_t *output) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+#ifdef GPUGLM_FASTMATH
+		output[i] = __fdividef(-1.0, __fmul_rn(input[i],
+				__fmul_rn(input[i], input[i])));
+#else
+		output[i] = -1.0 / (input[i] * input[i] * input[i]);
+#endif
+	}
+	return;
+}
+
+__global__ void cudaNegBinDerivative(int n, num_t *input, num_t *output,
+		num_t k) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+#ifdef GPUGLM_FASTMATH
+		output[i] = __fdividef(k, __fmul_rn(input[i], __fadd_rn(k, input[i])));
+#else
+		output[i] = k / input[i] * (k + input[i]);
+#endif
+	}
+	return;
+}
+
+__global__ void cudaPowerDerivative(int n, num_t *input, num_t *output,
+		num_t k, num_t newK) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+#ifdef GPUGLM_FASTMATH
+		output[i] = __fmul_rn(k, __powf(input[i], newK));
+#else
+		output[i] = k * pow(input[i], newK);
 #endif
 	}
 	return;
@@ -140,6 +232,17 @@ void sapply(glmVector<num_t> *input, glmVector<num_t> *output,
 	return;
 }
 
+void sapply(glmVector<num_t> *input, glmVector<num_t> *output,
+		void (*cudaKernel)(int, num_t*, num_t*, num_t, num_t),
+		num_t k, num_t newK) {
+	int numBlocks = input->getNumBlocks();
+
+	(*cudaKernel)<<<numBlocks, THREADS_PER_BLOCK>>>(input->getLength(),
+			input->getDeviceData(), output->getDeviceData(), k, newK);
+
+	return;
+}
+
 void linkLogit(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
 	sapply(input, output, cudaLogit);
 	return;
@@ -162,6 +265,11 @@ void linkSqRecip(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
 
 void linkNegBin(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
 	sapply(input, output, cudaNegBin, k);
+	return;
+}
+
+void linkPower(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	sapply(input, output, cudaPower, k);
 	return;
 }
 
@@ -193,6 +301,48 @@ void linkInvNegBin(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
 	return;
 }
 
+void linkInvPower(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	sapply(input, output, cudaPower, 1 / k);
+	return;
+}
+
+// Derivatives of Link Functions //////////////////////////////////////////////
+
+void linkConstant(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	sapply(input, output, cudaConstant);
+	return;
+}
+
+void linkLogitDerivative(glmVector<num_t> *input, glmVector<num_t> *output,
+		num_t k) {
+	sapply(input, output, cudaLogitDerivative);
+	return;
+}
+
+void linkRecipDerivative(glmVector<num_t> *input, glmVector<num_t> *output,
+		num_t k) {
+	sapply(input, output, cudaRecipDerivative);
+	return;
+}
+
+void linkSqrtRecipDerivative(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k) {
+	sapply(input, output, cudaSqrtRecipDerivative);
+	return;
+}
+
+void linkNegBinDerivative(glmVector<num_t> *input, glmVector<num_t> *output,
+		num_t k) {
+	sapply(input, output, cudaNegBinDerivative, k);
+	return;
+}
+
+void linkPowerDerivative(glmVector<num_t> *input, glmVector<num_t> *output,
+		num_t k) {
+	sapply(input, output, cudaPowerDerivative, k, k - 1.0);
+	return;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Link and Inverse Link Function Generators                                 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -210,6 +360,8 @@ linkFunction getLinkFunction(std::string linkType) {
 		link = linkSqRecip;
 	} else if (linkType == "negative binomial") {
 		link = linkNegBin;
+	} else if (linkType == "power") {
+		link = linkPower;
 	}
 
 	return link;
@@ -228,7 +380,29 @@ linkFunction getInvLinkFunction(std::string linkType) {
 		link = linkSqrtRecip;
 	} else if (linkType == "negative binomial") {
 		link = linkInvNegBin;
-	}
+	} else if (linkType == "power") {
+		link = linkInvPower;
+	};
 
 	return link;
+}
+
+linkFunction getLinkDerivativeFunction(std::string linkType) {
+	linkFunction linkDerivative = linkConstant;
+
+	if (linkType == "log") {
+		linkDerivative = linkRecip;
+	} else if (linkType == "logit") {
+		linkDerivative = linkLogitDerivative;
+	} else if (linkType == "reciprocal") {
+		linkDerivative = linkRecipDerivative;
+	} else if (linkType == "squared reciprocal") {
+		linkDerivative = linkSqrtRecipDerivative;
+	} else if (linkType == "negative binomial") {
+		linkDerivative = linkNegBinDerivative;
+	} else if (linkType == "power") {
+		linkDerivative = linkPowerDerivative;
+	};
+
+	return linkDerivative;
 }

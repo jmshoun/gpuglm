@@ -21,6 +21,8 @@ void linkIdentity(glmVector<num_t> *input,
 		glmVector<num_t> *output, num_t k = 0.0);
 void linkRecip(glmVector<num_t> *input,
 		glmVector<num_t> *output, num_t k = 0.0);
+void linkPower(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
 
 // Inverse Link Functions /////////////////////////////////////////////////////
 void linkInvLogit(glmVector<num_t> *input,
@@ -30,14 +32,26 @@ void linkSqrtRecip(glmVector<num_t> *input,
 		glmVector<num_t> *output, num_t k = 0.0);
 void linkInvNegBin(glmVector<num_t> *input,
 		glmVector<num_t> *output, num_t k);
+void linkInvPower(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
 // The identity and reciprocal functions are involutions, so they don't require
 // separate inverse functions.
 
 // Derivatives of Inverse Link Functions //////////////////////////////////////
-
+void linkLogitDerivative(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkRecipDerivative(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkSqrtRecipDerivative(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkNegBinDerivative(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
+void linkPowerDerivative(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
 
 // Link and Inverse Link Function Generators //////////////////////////////////
 linkFunction getLinkFunction(std::string linkType);
 linkFunction getInvLinkFunction(std::string linkType);
+linkFunction getLinkDerivativeFunciton(std::string linkType);
 
 #endif /* LINKFUNCTIONS_H_ */

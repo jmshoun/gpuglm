@@ -63,6 +63,18 @@ __global__ void cudaConstantVar(int n, num_t* input, num_t* output) {
 	return;
 }
 
+__global__ void cudaPowerVar(int n, num_t* input, num_t* output, num_t k) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n) {
+#ifdef GPUGLM_FASTMATH
+		output[i] = __powf(input[i], k);
+#else
+		output[i] = pow(input[i], k);
+#endif
+	}
+	return;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Host-side Variance Functions                                              //
 ///////////////////////////////////////////////////////////////////////////////
@@ -109,6 +121,11 @@ void varCube(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
 
 void varConstant(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
 	vapply(input, output, cudaConstantVar);
+	return;
+}
+
+void varPower(glmVector<num_t> *input, glmVector<num_t> *output, num_t k) {
+	vapply(input, output, cudaPowerVar, k);
 	return;
 }
 

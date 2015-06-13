@@ -20,6 +20,8 @@ void varIdentity(glmVector<num_t> *input,
 		glmVector<num_t> *output, num_t k = 0.0);
 void varConstant(glmVector<num_t> *input,
 		glmVector<num_t> *output, num_t k = 0.0);
+void varPower(glmVector<num_t> *input,
+		glmVector<num_t> *output, num_t k = 0.0);
 
 // Link and Inverse Link Function Generators //////////////////////////////////
 varianceFunction getVarianceFunction(std::string varianceType);
