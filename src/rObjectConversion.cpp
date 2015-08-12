@@ -103,6 +103,7 @@ template <> glmData* Rcpp::as(SEXP dataSexp) {
 	xNumeric = rToNumMatrix(terms["numeric.terms"]);
 	if (dataList.containsElementNamed("weights")) {
 		weights = rToNumVector(dataList["weights"]);
+		weights->copyHostToDevice();
 	}
 
 	return new glmData(y, xNumeric, NULL, weights);

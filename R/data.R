@@ -1,4 +1,4 @@
-.create_glm_data <- function(formula, data, weights=NULL) {
+.create_glm_data <- function(formula, data, weights.call=NULL) {
   .main <- function() {
     glm.data <- list()
     model.terms <- terms(formula, data=data)
@@ -8,7 +8,7 @@
     glm.data$terms <- .get_terms(factor.matrix)
     if (!is.null(weights)) {
       glm.data$weights <- .get_weights() %>%
-        .validate_weights(length(glm.data$terms[[1]]))
+        .validate_weights(length(glm.data$terms[[1]][[1]]))
     }
     
     glm.data
@@ -50,8 +50,7 @@
   
   .get_weights <- function() {
     tryCatch({
-      substitute(weights) %>%
-        eval(envir=data)
+        eval(weights.call, data)
     }, error=function(e) {
       stop('Specified weights not found')
     })

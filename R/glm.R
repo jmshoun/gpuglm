@@ -21,7 +21,7 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL,
                     control=gpuglm_control()) {
   
   .main <- function() {
-    data <- .create_glm_data(formula, data, weights)
+    data <- .create_glm_data(formula, data, weights.call)
     glm.object <- structure(list(data=data,
                                  family=family,
                                  control=control),
@@ -40,6 +40,8 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL,
   }
   
   .format_results <- function(data, results) {
+    results$status <- NULL
+      
     old.beta <- results$beta
     intercept <- old.beta[length(old.beta)] %>%
       magrittr::set_names('(Intercept)')
@@ -47,10 +49,12 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL,
       magrittr::set_names(names(data$terms$numeric.terms))
     results$beta <- list(intercept=intercept,
                          numeric=numeric.betas)
+    
     attr(results, 'class') <- 'gpuglm'
     
     results
   }
   
+  weights.call <- substitute(weights)
   .main()
 }
