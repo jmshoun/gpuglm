@@ -1,5 +1,7 @@
-#include <RcppCommon.h>
+#ifndef ROBJECTCONVERSION_H_
+#define ROBJECTCONVERSION_H_
 
+#include <RcppCommon.h>
 #include "glmObject.h"
 
 namespace Rcpp {
@@ -11,3 +13,5 @@ namespace Rcpp {
 	template <> SEXP wrap(const glmResults &results);
 	template <> SEXP wrap(const glmVector<num_t> &x);
 }
+
+#endif /* ROBJECTCONVERSION_H_ */

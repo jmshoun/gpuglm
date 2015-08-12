@@ -16,7 +16,7 @@ glmObject::glmObject(glmData *_data, glmFamily *_family,
 	hessian = new glmMatrix<num_t>(nBeta, nBeta, true, true, true);
 	yDelta = new glmVector<num_t>(nObs, true, true);
 	yVar = yDelta;
-	xScratch = new glmVector<num_t>(nObs, true, true);
+	xScratch = new glmVector<num_t>(nObs, true, true, true);
 	predictions = new glmVector<num_t>(nObs, true, true);
 
 	CUBLAS_WRAP(cublasCreate(&handle));
@@ -51,27 +51,30 @@ glmObject::~glmObject() {
 // Updating Functions /////////////////////////////////////////////////////////
 
 void glmObject::solve(void) {
-	num_t minDelta = 1000.0;
+	num_t maxDelta = 1000.0;
+	num_t thisDelta;
 	num_t *hostBetaDelta = betaDelta->getHostData();
 
-	while ((minDelta > control->getTolerance()) &&
+	while ((maxDelta > control->getTolerance()) &&
 			(results->getNumIterations() < control->getMaxIterations())) {
 		results->incrementNumIterations();
+		std::cout << "Iteration #" << results->getNumIterations() << std::endl;
 
 		this->updateGradient();
 		this->updateHessian();
 		this->solveHessian();
+
 		vectorAdd(results->getBeta(), betaDelta, results->getBeta());
 
 		betaDelta->copyDeviceToHost();
-		minDelta = hostBetaDelta[0];
-		for (int i = 1; i < nBeta; i++) {
-			minDelta = hostBetaDelta[i] > minDelta ?
-					hostBetaDelta[i] : minDelta;
+		maxDelta = 0.0;
+		for (int i = 0; i < nBeta; i++) {
+			thisDelta = fabs(hostBetaDelta[i]);
+			maxDelta = thisDelta > maxDelta ? thisDelta : maxDelta;
 		}
 	}
 
-	if (minDelta < control->getTolerance()) {
+	if (maxDelta < control->getTolerance()) {
 		results->setConverged(true);
 	}
 
@@ -91,8 +94,8 @@ void glmObject::updateHessian(void) {
 	(*variance)(predictions, yVar, 0.0);
 	// Handle weights of yVar if necessary
 	if (weights != NULL) {
-			vectorMultiply(yVar, weights, yVar);
-		}
+		vectorMultiply(yVar, weights, yVar);
+	}
 
 	// First, handle the intercept
 	vectorSum(yVar, hessian, nBeta * nBeta - 1);
@@ -128,10 +131,10 @@ void glmObject::solveHessian(void) {
 	// Copy the gradient to the update vector
 	copyDeviceToDevice(betaDelta, gradient);
 
-	CUSOLVER_WRAP(POTRF(solverHandle, CUBLAS_FILL_MODE_UPPER,
+	CUSOLVER_WRAP(POTRF(solverHandle, CUBLAS_FILL_MODE_LOWER,
 			nBeta, hessian->getDeviceData(), nBeta,
 			workspace, workspaceSize, devInfo));
-	CUSOLVER_WRAP(POTRS(solverHandle, CUBLAS_FILL_MODE_UPPER,
+	CUSOLVER_WRAP(POTRS(solverHandle, CUBLAS_FILL_MODE_LOWER,
 			nBeta, 1, hessian->getDeviceData(), nBeta,
 			betaDelta->getDeviceData(), nBeta, devInfo));
 

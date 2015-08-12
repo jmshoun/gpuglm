@@ -103,6 +103,10 @@ public:
 
 	// Data Management Functions //////////////////////////////////////////////
 	void copyDeviceToHost(void) {
+		if (deviceData == NULL) {
+			GLM_ERROR;
+		}
+
 		if (hostData == NULL) {
 			hostData = (T*) malloc(totalSize);
 		}
@@ -113,6 +117,10 @@ public:
 	}
 
 	void copyHostToDevice(void) {
+		if (hostData == NULL) {
+			GLM_ERROR;
+		}
+
 		if (deviceData == NULL) {
 			CUDA_WRAP(cudaMalloc((void **) &deviceData, totalSize));
 		}
@@ -179,6 +187,8 @@ protected:
 
 public:
 	// Constructors ///////////////////////////////////////////////////////////
+
+	// Construct an empty glmMatrix
 	glmMatrix(int _nRows, int _nCols, bool initHost = false,
 			bool initDevice = false, bool initialize = false) :
 				glmArray<T>(_nRows * _nCols, initHost, initDevice,
@@ -187,6 +197,7 @@ public:
 		nCols = _nCols;
 	}
 
+	// Construct a glmMatrix from pre-existing continguous data
 	glmMatrix(T *_data, int _nRows, int _nCols, bool deepCopy = false,
 			location_t dataLocation = LOCATION_HOST) :
 		glmArray<T>(_data, _nRows * _nCols, deepCopy, dataLocation) {
@@ -197,7 +208,7 @@ public:
 	~glmMatrix() { }
 
 	// Matrix-specific Functions //////////////////////////////////////////////
-	void copyRowFromHost(T *_data, int colNum) {
+	void copyColumnFromHost(T *_data, int colNum) {
 		if (colNum < nCols) {
 			T* colAddress = this->deviceData + (colNum * nRows);
 			CUDA_WRAP(cudaMemcpy(colAddress, _data, sizeof(T) * nRows,

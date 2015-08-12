@@ -3,6 +3,8 @@
 #define GPUGLMCONFIG_H_
 
 typedef double num_t;
+typedef unsigned char factor_t;
+typedef unsigned short int long_factor_t;
 
 typedef enum {
 	LOCATION_HOST,

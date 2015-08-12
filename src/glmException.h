@@ -11,9 +11,22 @@
 // Base class for GLM Exceptions //////////////////////////////////////////////
 
 class glmException : public std::exception {
+protected:
+	int lineNumber;
+	const char *fileName;
+
+public:
+	glmException(int _lineNumber, const char *_fileName) {
+		lineNumber = _lineNumber;
+		fileName = _fileName;
+	}
+
 	virtual const char* what() const throw() {
 		return "Generic gpuglm exception";
 	}
+
+	int getLineNumber(void) const { return lineNumber; };
+	const char* getFileName(void) const { return fileName; };
 };
 
 // GLM Exceptions thrown by CUDA //////////////////////////////////////////////
@@ -23,7 +36,9 @@ protected:
 	cudaError_t cudaErrorCode;
 
 public:
-	glmCudaException(cudaError_t _cudaErrorCode) {
+	glmCudaException(cudaError_t _cudaErrorCode, int _lineNumber,
+			const char *_fileName) :
+			glmException(_lineNumber, _fileName) {
 		cudaErrorCode = _cudaErrorCode;
 	}
 
@@ -64,7 +79,9 @@ protected:
 	cublasStatus_t cublasErrorCode;
 
 public:
-	glmCublasException(cublasStatus_t _cublasErrorCode) {
+	glmCublasException(cublasStatus_t _cublasErrorCode, int _lineNumber,
+			const char *_fileName) :
+			glmException(_lineNumber, _fileName) {
 		cublasErrorCode = _cublasErrorCode;
 	}
 
@@ -97,7 +114,9 @@ protected:
 	cusolverStatus_t cusolverErrorCode;
 
 public:
-	glmCusolverException(cusolverStatus_t _cusolverErrorCode) {
+	glmCusolverException(cusolverStatus_t _cusolverErrorCode, int _lineNumber,
+			const char *_fileName) :
+			glmException(_lineNumber, _fileName) {
 		cusolverErrorCode = _cusolverErrorCode;
 	};
 
@@ -125,23 +144,24 @@ public:
 
 // Macros to wrap calls to CUDA/CUBLAS/CUSOLVER and throw exceptions //////////
 
+#define GLM_ERROR throw glmException(__LINE__, __FILE__);
+
 #define CUDA_WRAP(value) {													\
 	cudaError_t _m_cudaStat = value;										\
 	if (_m_cudaStat != cudaSuccess) {										\
-		throw glmCudaException(_m_cudaStat);								\
+		throw glmCudaException(_m_cudaStat, __LINE__, __FILE__);			\
 	} }
 
 #define CUBLAS_WRAP(value) {												\
 	cublasStatus_t _m_cublasStat = value;									\
 	if (_m_cublasStat != CUBLAS_STATUS_SUCCESS) {							\
-		throw glmCublasException(_m_cublasStat);							\
+		throw glmCublasException(_m_cublasStat, __LINE__, __FILE__);		\
 	} }
 
 #define CUSOLVER_WRAP(value) {												\
 	cusolverStatus_t _m_cusolverStat = value;								\
 	if (_m_cusolverStat != CUSOLVER_STATUS_SUCCESS) {						\
-		throw glmCusolverException(_m_cusolverStat);						\
+		throw glmCusolverException(_m_cusolverStat, __LINE__, __FILE__);	\
 	} }
-
 
 #endif /* GLMEXCEPTION_H_ */

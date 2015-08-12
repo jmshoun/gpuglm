@@ -28,10 +28,15 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL,
                             class='gpuglm_specification')
     
     results <- cpp_gpu_glm(glm.object)
-    if (!(results$converged)) {
-      warning('Model failed to converge')
+    
+    if (results$status == 'FAILED') {
+      stop("Execution on GPU failed")
+    } else {
+      if (!(results$converged)) {
+        warning('Model failed to converge')
+      }
+      .format_results(results, data=data)
     }
-    .format_results(results, data=data)
   }
   
   .format_results <- function(data, results) {
