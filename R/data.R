@@ -1,12 +1,15 @@
 .create_glm_data <- function(formula, data, weights.call=NULL) {
   .main <- function() {
     glm.data <- list()
-    model.terms <- terms(formula, data=data)
+    
+    model.terms <- terms(formula, data=data) %T>%
+      .check_for_interactions()
     factor.matrix <- attr(model.terms, 'factors')
     
     glm.data$response <- .get_response(factor.matrix)
     glm.data$terms <- .get_terms(factor.matrix)
-    if (!is.null(weights)) {
+    
+    if (!is.null(weights.call)) {
       glm.data$weights <- .get_weights() %>%
         .validate_weights(length(glm.data$terms[[1]][[1]]))
     }
@@ -57,6 +60,8 @@
   }
   
   .extract_factor <- function(factor.name) {
+    ## The else branch in this conditional statement evaluates to the correct value at all times.
+    ## The first branch is only there to avoid making extra deep copies of columns.
     if (factor.name %in% names(data)) {
       data[[factor.name]]
     } else {

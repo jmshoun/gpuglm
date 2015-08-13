@@ -4,12 +4,15 @@
 
 #include <string>
 
+#include "glmArray.h"
+
 class glmControl {
 
 protected:
 	std::string fitMethod;
 	unsigned int maxIterations;
 	double tolerance;
+	glmVector<num_t> *startingBeta;
 
 public:
 	// Constructors/Destructors ///////////////////////////////////////////////

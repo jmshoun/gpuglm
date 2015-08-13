@@ -39,7 +39,8 @@ protected:
 
 public:
 	// Constructors / Destructros /////////////////////////////////////////////
-	glmObject(glmData *_data, glmFamily *_family, glmControl *_control);
+	glmObject(glmData *_data, glmFamily *_family, glmControl *_control,
+			glmVector<num_t> *_startingBeta);
 	~glmObject();
 
 	// Updating Functions /////////////////////////////////////////////////////

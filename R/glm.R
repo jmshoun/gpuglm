@@ -17,8 +17,8 @@
 ##' 
 ##' @return An object of class \code{gpuglm}.
 
-gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL, 
-                    control=gpuglm_control()) {
+gpuglm <- function(formula, data, family=gpuglm_family(), weights, 
+                    control=gpuglm_control(), prior.fit=NULL) {
   
   .main <- function() {
     data <- .create_glm_data(formula, data, weights.call)
@@ -26,6 +26,7 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL,
                                  family=family,
                                  control=control),
                             class='gpuglm_specification')
+    glm.object$starting.beta <- .build_starting_beta(glm.object$data$terms, prior.fit)
     
     results <- cpp_gpu_glm(glm.object)
     
@@ -55,6 +56,11 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights=NULL,
     results
   }
   
-  weights.call <- substitute(weights)
+  if (missing(weights)) {
+    weights.call <- NULL
+  } else {
+    weights.call <- substitute(weights)
+  }
+  
   .main()
 }

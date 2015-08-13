@@ -13,8 +13,8 @@ protected:
 
 public:
 	// Constructors/Destructors ///////////////////////////////////////////////
-	glmResults(int beta_length) {
-		beta = new glmVector<num_t>(beta_length, true, true, true);
+	glmResults(glmVector<num_t> *_startingBeta) {
+		beta = _startingBeta;
 		beta->setSharedHost(true);
 		numIterations = 0;
 		converged = false;

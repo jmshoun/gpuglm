@@ -3,13 +3,13 @@
 // Constructors / Destructors /////////////////////////////////////////////////
 
 glmObject::glmObject(glmData *_data, glmFamily *_family,
-		glmControl *_control) {
+		glmControl *_control, glmVector<num_t> *_startingBeta) {
 	data = _data;
 	family = _family;
 	control = _control;
 	nBeta = data->getNBeta();
 	nObs = data->getNObs();
-	results = new glmResults(nBeta);
+	results = new glmResults(_startingBeta);
 
 	gradient = new glmVector<num_t>(nBeta, true, true);
 	betaDelta = new glmVector<num_t>(nBeta, true, true);

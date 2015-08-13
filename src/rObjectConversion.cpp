@@ -11,11 +11,17 @@ num_t* rVectorToPointer(SEXP rVector) {
 	return (num_t*) &(vector[0]);
 }
 
-glmVector<num_t>* rToNumVector(SEXP rVector) {
+glmVector<num_t>* rToNumVector(SEXP rVector, bool copyToDevice = true) {
+	glmVector<num_t> *results;
 	NumericVector vector = as<NumericVector>(rVector);
 	num_t *dataPointer = (num_t*) &(vector[0]);
 
-	return new glmVector<num_t>(dataPointer, vector.length());
+	results = new glmVector<num_t>(dataPointer, vector.length());
+	if (copyToDevice) {
+		results->copyHostToDevice();
+	}
+
+	return results;
 }
 
 glmMatrix<num_t>* rToNumMatrix(SEXP rVectorList) {
@@ -63,8 +69,9 @@ template <> glmObject* Rcpp::as(SEXP objectSexp) {
 	glmData *data = as<glmData*>(objectList["data"]);
 	glmFamily *family = as<glmFamily*>(objectList["family"]);
 	glmControl *control = as<glmControl*>(objectList["control"]);
+	glmVector<num_t> *startingBeta = rToNumVector(objectList["starting.beta"]);
 
-	return new glmObject(data, family, control);
+	return new glmObject(data, family, control, startingBeta);
 }
 
 template <> glmFamily* Rcpp::as(SEXP familySexp) {
@@ -98,12 +105,9 @@ template <> glmData* Rcpp::as(SEXP dataSexp) {
 	List terms = dataList["terms"];
 
 	y = rToNumVector(dataList["response"]);
-	y->copyHostToDevice();
-
 	xNumeric = rToNumMatrix(terms["numeric.terms"]);
 	if (dataList.containsElementNamed("weights")) {
 		weights = rToNumVector(dataList["weights"]);
-		weights->copyHostToDevice();
 	}
 
 	return new glmData(y, xNumeric, NULL, weights);
