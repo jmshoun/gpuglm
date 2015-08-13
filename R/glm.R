@@ -14,6 +14,9 @@
 ##' terms in \code{data}. If \code{NULL}, all observations are assumed to have equal weight.
 ##' @param control An object of class \code{gpuglm_control} that controls the fitting algorithm and
 ##' convergence criteria.
+##' @param prior.fit An object returned from a prior call to \code{gpuglm}. The parameters
+##' associated with \code{prior.fit} are used to set the initial parameter estimates in the current
+##' model, which can significantly speed up fit times.
 ##' 
 ##' @return An object of class \code{gpuglm}.
 
@@ -22,6 +25,10 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights,
   
   .main <- function() {
     data <- .create_glm_data(formula, data, weights.call)
+    if (is.character(family)) {
+      family <- gpuglm_family(family)
+    }
+    
     glm.object <- structure(list(data=data,
                                  family=family,
                                  control=control),
