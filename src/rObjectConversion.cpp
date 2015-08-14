@@ -99,18 +99,24 @@ template <> glmControl* Rcpp::as(SEXP controlSexp) {
 template <> glmData* Rcpp::as(SEXP dataSexp) {
 	glmVector<num_t> *y;
 	glmMatrix<num_t> *xNumeric = NULL;
+	glmMatrix<factor_t> *xFactor = NULL;
 	glmVector<num_t> *weights = NULL;
 
 	List dataList = List(dataSexp);
 	List terms = dataList["terms"];
 
 	y = rToNumVector(dataList["response"]);
-	xNumeric = rToNumMatrix(terms["numeric.terms"]);
+	if (terms.containsElementNamed("numeric.terms")) {
+		xNumeric = rToNumMatrix(terms["numeric.terms"]);
+	}
+	if (terms.containsElementNamed("factor.terms")) {
+		xFactor = rToFactorMatrix(terms["factor.terms"]);
+	}
 	if (dataList.containsElementNamed("weights")) {
 		weights = rToNumVector(dataList["weights"]);
 	}
 
-	return new glmData(y, xNumeric, NULL, weights);
+	return new glmData(y, xNumeric, xFactor, weights);
 }
 
 // C++ object to R object conversion //////////////////////////////////////////

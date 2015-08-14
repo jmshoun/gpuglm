@@ -8,6 +8,7 @@
     
     glm.data$response <- .get_response(factor.matrix)
     glm.data$terms <- .get_terms(factor.matrix)
+    print(glm.data$terms)
     
     if (!is.null(weights.call)) {
       glm.data$weights <- .get_weights() %>%
@@ -31,24 +32,23 @@
   
   .get_terms <- function(factor.matrix) {
     term.names <- rownames(factor.matrix)[-1]
-    is.term.numeric <- sapply(term.names, function(term.name) {
-      parse(text=term.name) %>%
-        eval(envir=data) %>%
-        is.numeric()
-    })
+    unsorted.terms <- sapply(term.names, .extract_factor, simplify=FALSE)
     
-    if (!all(is.term.numeric)) {
-      stop('Factor terms are not supported yet.')
+    is.numeric.term <- sapply(unsorted.terms, is.numeric)
+    is.factor.term <- sapply(unsorted.terms, is.factor)
+    if (!all(is.numeric.term | is.factor.term)) {
+      stop('Only numeric and factor terms are currently supported.')
     }
     
-    list(numeric.terms=.get_numeric_terms(term.names))
-  }
-  
-  .get_numeric_terms <- function(term.names) {
-    lapply(term.names, function(term.name) {
-      .extract_factor(term.name)
-    }) %>%
-      magrittr::set_names(term.names)
+    terms <- list()
+    if (any(is.numeric.term)) {
+      terms$numeric.terms <- unsorted.terms[is.numeric.term]
+    }
+    if (any(is.factor.term)) {
+      terms$factor.terms <- unsorted.terms[is.factor.term]
+    }
+    
+    terms
   }
   
   .get_weights <- function() {
@@ -60,14 +60,8 @@
   }
   
   .extract_factor <- function(factor.name) {
-    ## The else branch in this conditional statement evaluates to the correct value at all times.
-    ## The first branch is only there to avoid making extra deep copies of columns.
-    if (factor.name %in% names(data)) {
-      data[[factor.name]]
-    } else {
-      parse(text=factor.name) %>%
-        eval(envir=data)
-    }
+    parse(text=factor.name) %>%
+      eval(envir=data)
   }
   
   .main()
