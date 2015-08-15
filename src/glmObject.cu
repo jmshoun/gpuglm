@@ -7,9 +7,10 @@ glmObject::glmObject(glmData *_data, glmFamily *_family,
 	data = _data;
 	family = _family;
 	control = _control;
-	nBeta = data->getNBeta();
-	nObs = data->getNObs();
 	results = new glmResults(_startingBeta);
+
+	nBeta = results->getNBeta();
+	nObs = data->getNObs();
 
 	gradient = new glmVector<num_t>(nBeta, true, true);
 	betaDelta = new glmVector<num_t>(nBeta, true, true);

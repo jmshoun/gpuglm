@@ -29,7 +29,6 @@ public:
 
 	// Derived Accessors //////////////////////////////////////////////////////
 	int getNObs(void);
-	int getNBeta(void);
 };
 
 #endif /* GLMDATA_H_ */

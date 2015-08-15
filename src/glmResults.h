@@ -24,6 +24,7 @@ public:
 	glmVector<num_t>* getBeta(void) const { return beta; };
 	unsigned int getNumIterations(void) const { return numIterations; };
 	bool getConverged(void) const { return converged; };
+	int getNBeta(void) const { return beta->getLength(); };
 
 	void incrementNumIterations(void) { numIterations++; };
 	void setConverged(bool _converged) { converged = _converged; };

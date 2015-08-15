@@ -25,9 +25,3 @@ glmData::~glmData() {
 int glmData::getNObs(void) {
 	return y->getLength();
 }
-
-int glmData::getNBeta(void) {
-	int numXNumeric = xNumeric->getNCols();
-	int numXFactor = xFactor->getNCols();
-	return numXNumeric + 1;	// +1 is for the intercept
-}
