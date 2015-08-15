@@ -12,11 +12,28 @@ void copyDeviceToDevice(glmVector<num_t> *destination,
 
 // Kernels for vector arithmetic //////////////////////////////////////////////
 
-__global__ void vectorSumKernelSlow(int n, num_t *x, num_t *sum) {
-	int i;
+__global__ void vectorSumKernel(int n, num_t *x, num_t *sum) {
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	extern __shared__ num_t sharedX[];
 
-	for (i = 0; i < n; i++) {
-		sum[0] += x[i];
+	// load data into __shared__ memory
+	num_t xElement = 0.0;
+	if (i < n) {
+		xElement = x[i];
+	}
+	sharedX[threadIdx.x] = xElement;
+	__syncthreads();
+
+	// each loop compresses the data by a factor of 2
+	for (int offset = blockDim.x / 2; offset > 0; offset >>= 1) {
+		if (threadIdx.x < offset) {
+			sharedX[threadIdx.x] += sharedX[threadIdx.x + offset];
+		}
+		__syncthreads();
+	}
+
+	if (threadIdx.x == 0) {
+		sum[blockIdx.x] = sharedX[0];
 	}
 
 	return;
@@ -64,13 +81,45 @@ __global__ void vectorMultiplyKernel(int n, num_t *a, num_t *b, num_t *c) {
 
 // Vector Arithmetic Functions ////////////////////////////////////////////////
 
+void vectorSumSimple(int length, num_t *input, num_t *output) {
+	int blockCount = length / THREADS_PER_BLOCK +
+			(length % THREADS_PER_BLOCK ? 1 : 0);
+	int sharedMemorySize = THREADS_PER_BLOCK * sizeof(num_t);
+
+	vectorSumKernel<<<blockCount, THREADS_PER_BLOCK,
+			sharedMemorySize>>>(length, input, output);
+
+	return;
+}
+
+void vectorSumRecursive(int length, num_t *input, num_t *output) {
+	if (length <= THREADS_PER_BLOCK) {
+		// Base case: sum the vector with a single threadblock and save to
+		// the (single) output
+		vectorSumSimple(length, input, output);
+	} else {
+		// Recursive case: allocate space for the partial sums...
+		int tempLength = length / THREADS_PER_BLOCK +
+				(length % THREADS_PER_BLOCK ? 1 : 0);
+		num_t *tempOutput = NULL;
+		CUDA_WRAP(cudaMalloc((void **) &tempOutput,
+				tempLength * sizeof(num_t)));
+
+		// ...calculate the multiple partial sums...
+		vectorSumSimple(length, input, tempOutput);
+
+		// ...and then recurse on the partial sums
+		vectorSumRecursive(tempLength, tempOutput, output);
+		CUDA_WRAP(cudaFree(tempOutput));
+	}
+
+	return;
+}
+
 void vectorSum(glmVector<num_t> *vector, glmArray<num_t> *result,
 		int resultIndex) {
-	num_t *finalResult = result->getDeviceData() + resultIndex;
-
-	CUDA_WRAP(cudaMemset((void *) finalResult, 0, sizeof(num_t)));
-	vectorSumKernelSlow<<<1, 1>>>(vector->getLength(),
-			vector->getDeviceData(), finalResult);
+	vectorSumRecursive(vector->getLength(), vector->getDeviceData(),
+			result->getDeviceData() + resultIndex);
 
 	return;
 }
