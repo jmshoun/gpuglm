@@ -11,6 +11,19 @@ num_t* rVectorToPointer(SEXP rVector) {
 	return (num_t*) &(vector[0]);
 }
 
+glmVector<int>* rToIntVector(SEXP rVector, bool copyToDevice = true) {
+	glmVector<int> *results;
+	IntegerVector vector = as<IntegerVector>(rVector);
+	int *dataPointer = (int*) &(vector[0]);
+
+	results = new glmVector<int>(dataPointer, vector.length());
+	if (copyToDevice) {
+		results->copyHostToDevice();
+	}
+
+	return results;
+}
+
 glmVector<num_t>* rToNumVector(SEXP rVector, bool copyToDevice = true) {
 	glmVector<num_t> *results;
 	NumericVector vector = as<NumericVector>(rVector);
@@ -100,6 +113,7 @@ template <> glmData* Rcpp::as(SEXP dataSexp) {
 	glmVector<num_t> *y;
 	glmMatrix<num_t> *xNumeric = NULL;
 	glmMatrix<factor_t> *xFactor = NULL;
+	glmVector<int> *factorOffsets = NULL;
 	glmVector<num_t> *weights = NULL;
 
 	List dataList = List(dataSexp);
@@ -112,11 +126,14 @@ template <> glmData* Rcpp::as(SEXP dataSexp) {
 	if (terms.containsElementNamed("factor.terms")) {
 		xFactor = rToFactorMatrix(terms["factor.terms"]);
 	}
+	if (terms.containsElementNamed("factor.offsets")) {
+		factorOffsets = rToIntVector(terms["factor.offsets"]);
+	}
 	if (dataList.containsElementNamed("weights")) {
 		weights = rToNumVector(dataList["weights"]);
 	}
 
-	return new glmData(y, xNumeric, xFactor, weights);
+	return new glmData(y, xNumeric, xFactor, factorOffsets, weights);
 }
 
 // C++ object to R object conversion //////////////////////////////////////////

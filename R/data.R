@@ -8,7 +8,6 @@
     
     glm.data$response <- .get_response(factor.matrix)
     glm.data$terms <- .get_terms(factor.matrix)
-    print(glm.data$terms)
     
     if (!is.null(weights.call)) {
       glm.data$weights <- .get_weights() %>%
@@ -46,6 +45,7 @@
     }
     if (any(is.factor.term)) {
       terms$factor.terms <- unsorted.terms[is.factor.term]
+      terms$factor.offsets <- .set_factor_offsets(terms)
     }
     
     terms
@@ -53,7 +53,7 @@
   
   .get_weights <- function() {
     tryCatch({
-        eval(weights.call, data)
+      eval(weights.call, data)
     }, error=function(e) {
       stop('Specified weights not found')
     })
@@ -62,6 +62,16 @@
   .extract_factor <- function(factor.name) {
     parse(text=factor.name) %>%
       eval(envir=data)
+  }
+  
+  .set_factor_offsets <- function(terms) {
+    initial.offset <- length(terms$numeric.terms)
+    factor.level.counts <- sapply(terms$factor.terms, function(factor.term) {
+      levels(factor.term) %>%
+        length()
+    })
+    
+    initial.offset + c(0, head(factor.level.counts - 1, -1))
   }
   
   .main()

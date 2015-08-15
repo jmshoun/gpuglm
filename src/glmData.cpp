@@ -3,11 +3,12 @@
 #include <cuda_runtime.h>
 
 glmData::glmData(glmVector<num_t> *_y, glmMatrix<num_t> *_xNumeric,
-		glmMatrix<factor_t> *_xFactor,
+		glmMatrix<factor_t> *_xFactor, glmVector<int> *_factorOffsets,
 		glmVector<num_t> *_weights) {
 	y = _y;
 	xNumeric = _xNumeric;
 	xFactor = _xFactor;
+	factorOffsets = _factorOffsets;
 	weights = _weights;
 
 	return;
