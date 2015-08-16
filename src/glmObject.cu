@@ -98,6 +98,8 @@ void glmObject::solve(void) {
 		this->solveHessian();
 
 		vectorAdd(results->getBeta(), betaDelta, results->getBeta());
+		results->getBeta()->copyDeviceToHost();
+		std::cout << *(results->getBeta()) << std::endl;
 
 		betaDelta->copyDeviceToHost();
 		maxDelta = 0.0;
@@ -118,6 +120,9 @@ void glmObject::updateHessian(void) {
 	glmVector<num_t> *weights = data->getWeights();
 	varianceFunction variance = family->getVariance();
 
+	CUDA_WRAP(cudaMemset(hessian->getDeviceElement(0, 0), 0,
+			nBeta * nBeta * sizeof(num_t)));
+
 	CUBLAS_WRAP(cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
 
 	// Calculate the variance of the observations
@@ -128,13 +133,22 @@ void glmObject::updateHessian(void) {
 	}
 
 	this->updateHessianInterceptIntercept();
-	this->updateHessianInterceptNumeric();
-	this->updateHessianInterceptFactor();
-	this->updateHessianNumericNumeric();
-	this->updateHessianNumericFactor();
-	this->updateHessianFactorFactor();
+	if (data->getXNumeric() != NULL) {
+		this->updateHessianInterceptNumeric();
+		this->updateHessianNumericNumeric();
+	}
+	if (data->getXFactor() != NULL) {
+		this->updateHessianInterceptFactor();
+		this->updateHessianFactorFactor();
+	}
+	if ((data->getXNumeric() != NULL) && (data->getXFactor() != NULL)) {
+		this->updateHessianNumericFactor();
+	}
 
 	CUBLAS_WRAP(cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+
+	hessian->copyDeviceToHost();
+	std::cout << *(hessian) << std::endl;
 
 	return;
 }
@@ -151,13 +165,27 @@ void glmObject::updateHessianInterceptNumeric(void) {
 		CUBLAS_WRAP(DOT(handle, nObs,
 				yVar->getDeviceData(), 1,
 				xNumeric->getDeviceElement(0, i), 1,
-				hessian->getDeviceElement(nBeta - 1, i)));
+				hessian->getDeviceElement(i, nBeta - 1)));
 	}
 
 	return;
 }
 
 void glmObject::updateHessianInterceptFactor(void) {
+	glmMatrix<factor_t> *xFactor = data->getXFactor();
+	int indexOffset;
+	factor_t *factorColumn;
+
+	for (int i = 0; i < data->getNFactors(); i++) {
+		factorColumn = data->getFactorColumn(i);
+		indexOffset = data->getFactorOffset(i) + 2;
+
+		factorProductKernel<<<1, 1>>>(nObs, factorColumn,
+				yVar->getDeviceData(),
+				hessian->getDeviceElement(indexOffset, nBeta - 1));
+		CUDA_WRAP(cudaPeekAtLastError());
+	}
+
 	return;
 }
 
@@ -175,7 +203,7 @@ void glmObject::updateHessianNumericNumeric(void) {
 			CUBLAS_WRAP(DOT(handle, nObs,
 					xScratch->getDeviceData(), 1,
 					xNumeric->getDeviceElement(0, j), 1,
-					hessian->getDeviceElement(j, i)));
+					hessian->getDeviceElement(i, j)));
 		}
 	}
 
@@ -183,10 +211,63 @@ void glmObject::updateHessianNumericNumeric(void) {
 }
 
 void glmObject::updateHessianNumericFactor(void) {
+	glmMatrix<factor_t> *xFactor = data->getXFactor();
+	glmMatrix<num_t> *xNumeric = data->getXNumeric();
+	glmVector<num_t> *xColumn;
+	int numericCols = xNumeric->getNCols();
+	int indexOffset;
+	factor_t *factorColumn;
+	num_t *tempResults;
+
+	for (int numericIndex = 0; numericIndex < numericCols; numericIndex++) {
+		xColumn = xNumeric->getDeviceColumn(numericIndex);
+		vectorMultiply(yVar, xColumn, xScratch);
+		delete xColumn;
+
+		for (int factorIndex = 0; factorIndex < data->getNFactors();
+					factorIndex++) {
+			factorColumn = data->getFactorColumn(factorIndex);
+			indexOffset = data->getFactorOffset(factorIndex) + 2;
+
+			CUDA_WRAP(cudaMalloc((void **) &tempResults, 1 * sizeof(num_t)));
+			CUDA_WRAP(cudaMemset(tempResults, 0, 1 * sizeof(num_t)));
+
+			factorProductKernel<<<1, 1>>>(nObs, factorColumn,
+					xScratch->getDeviceData(),
+					tempResults);
+			CUDA_WRAP(cudaPeekAtLastError());
+
+			for (int i = 0; i < 1; i++) {
+				cudaMemcpy(hessian->getDeviceElement(numericIndex, indexOffset + i),
+						tempResults + i,
+						sizeof(num_t),
+						cudaMemcpyDeviceToDevice);
+			}
+
+			CUDA_WRAP(cudaFree(tempResults));
+		}
+	}
+
 	return;
 }
 
 void glmObject::updateHessianFactorFactor(void) {
+	int indexOffset;
+
+	for (int i = 0; i < data->getNFactors(); i++) {
+		indexOffset = data->getFactorOffset(i) + 2;
+		for (int j = 0; j < data->getNFactors(); j++) {
+			if (i == j) {
+				for (int k = 0; k < 1; k++) {
+					CUDA_WRAP(cudaMemcpy(hessian->getDeviceElement(indexOffset + k, indexOffset + k),
+							hessian->getDeviceElement(indexOffset + k, nBeta - 1),
+							sizeof(num_t),
+							cudaMemcpyDeviceToDevice));
+				}
+			}
+		}
+	}
+
 	return;
 }
 
@@ -194,10 +275,10 @@ void glmObject::solveHessian(void) {
 	// Copy the gradient to the update vector
 	copyDeviceToDevice(betaDelta, gradient);
 
-	CUSOLVER_WRAP(POTRF(solverHandle, CUBLAS_FILL_MODE_LOWER,
+	CUSOLVER_WRAP(POTRF(solverHandle, CUBLAS_FILL_MODE_UPPER,
 			nBeta, hessian->getDeviceData(), nBeta,
 			workspace, workspaceSize, devInfo));
-	CUSOLVER_WRAP(POTRS(solverHandle, CUBLAS_FILL_MODE_LOWER,
+	CUSOLVER_WRAP(POTRS(solverHandle, CUBLAS_FILL_MODE_UPPER,
 			nBeta, 1, hessian->getDeviceData(), nBeta,
 			betaDelta->getDeviceData(), nBeta, devInfo));
 
@@ -245,7 +326,7 @@ void glmObject::updateGradientFactor(int index) {
 	factor_t *factorColumn = data->getFactorColumn(index);
 
 	CUDA_WRAP(cudaMemset(gradient->getDeviceElement(gradientOffset),
-			0, 2 * sizeof(num_t)));
+			0, 1 * sizeof(num_t)));
 	factorProductKernel<<<1, 1>>>(nObs, factorColumn, yDelta->getDeviceData(),
 			gradient->getDeviceElement(gradientOffset));
 	CUDA_WRAP(cudaPeekAtLastError());

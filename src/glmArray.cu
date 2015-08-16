@@ -209,20 +209,21 @@ std::ostream& operator<<(std::ostream& os, const glmMatrix<factor_t>& glmMat) {
 }
 
 std::ostream& operator<<(std::ostream& os, const glmMatrix<num_t>& glmMat) {
-	for (int i = 0; i < glmMat.getNRows(); i++) {
-		if (i == 0) {
+	for (int rowNum = 0; rowNum < glmMat.getNRows(); rowNum++) {
+		if (rowNum == 0) {
 			os << "[[";
 		} else {
 			os << " [";
 		}
 
-		os << glmMat.getHostData()[i];
-		for (int j = 1; j < glmMat.getNCols(); j++) {
-			os << ", " << glmMat.getHostData()[i + j * glmMat.getNRows()];
+		os << glmMat.getHostData()[rowNum];
+		for (int colNum = 1; colNum < glmMat.getNCols(); colNum++) {
+			os << ", " <<
+					glmMat.getHostData()[rowNum + colNum * glmMat.getNRows()];
 		}
 
 		os << "]";
-		if (i < glmMat.getNRows() - 1) {
+		if (rowNum < glmMat.getNRows() - 1) {
 			os << std::endl;
 		}
 	}
