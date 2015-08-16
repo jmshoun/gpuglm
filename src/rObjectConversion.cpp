@@ -44,8 +44,8 @@ glmMatrix<num_t>* rToNumMatrix(SEXP rVectorList) {
 	int nRows = tempColumn.length();
 	num_t *hostData;
 
-	glmMatrix<num_t> *result = new glmMatrix<num_t>(tempColumn.length(),
-			nColumns, false, true, false);
+	glmMatrix<num_t> *result = new glmMatrix<num_t>(nRows, nColumns,
+			false, true, false);
 	for (int i = 0; i < nColumns; i++) {
 		result->copyColumnFromHost(rVectorToPointer(matrixColumns[i]), i);
 	}
@@ -56,16 +56,20 @@ glmMatrix<num_t>* rToNumMatrix(SEXP rVectorList) {
 glmMatrix<factor_t>* rToFactorMatrix(SEXP rVectorList) {
 	List matrixColumns = List(rVectorList);
 	IntegerVector tempColumn = as<IntegerVector>(matrixColumns[0]);
+	int *tempColPtr;
 	int nColumns = matrixColumns.size();
 	int nRows = tempColumn.length();
 	factor_t *tempFactor = (factor_t*) malloc(sizeof(factor_t) * nRows);
 
+
 	glmMatrix<factor_t> *result = new glmMatrix<factor_t>(nRows, nColumns,
-			false, true, false);
+			true, true, false);
+
 	for (int i = 0; i < nColumns; i++) {
 		tempColumn = as<IntegerVector>(matrixColumns[i]);
+		tempColPtr = (int*) &(tempColumn[0]);
 		for (int j = 0; j < nRows; j++) {
-			tempFactor[i] = (factor_t) tempColumn[i];
+			tempFactor[j] = (factor_t) tempColPtr[j];
 		}
 		result->copyColumnFromHost(tempFactor, i);
 	}

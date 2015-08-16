@@ -28,7 +28,10 @@ public:
 	glmVector<num_t>* getWeights(void) const { return weights; };
 
 	// Derived Accessors //////////////////////////////////////////////////////
-	int getNObs(void);
+	int getNObs(void) const;
+	int getNFactors(void) const;
+	factor_t* getFactorColumn(int index) const;
+	int getFactorOffset(int index) const;
 };
 
 #endif /* GLMDATA_H_ */

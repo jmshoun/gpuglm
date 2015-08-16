@@ -165,6 +165,16 @@ void vectorMultiply(glmVector<num_t> *a, glmVector<num_t> *b,
 
 // Print Functions ////////////////////////////////////////////////////////////
 
+std::ostream& operator<<(std::ostream& os, const glmVector<factor_t>& glmVec) {
+	os << "[" << ((int) glmVec.getHostData()[0]);
+	for (int i = 1; i < glmVec.getLength(); i++) {
+		os << ", " << ((int) glmVec.getHostData()[i]);
+	}
+	os << "]";
+
+	return os;
+};
+
 std::ostream& operator<<(std::ostream& os, const glmVector<num_t>& glmVec) {
 	os << "[" << glmVec.getHostData()[0];
 	for (int i = 1; i < glmVec.getLength(); i++) {
@@ -174,6 +184,29 @@ std::ostream& operator<<(std::ostream& os, const glmVector<num_t>& glmVec) {
 
 	return os;
 };
+
+std::ostream& operator<<(std::ostream& os, const glmMatrix<factor_t>& glmMat) {
+	for (int i = 0; i < glmMat.getNRows(); i++) {
+		if (i == 0) {
+			os << "[[";
+		} else {
+			os << " [";
+		}
+
+		os << ((int) glmMat.getHostData()[i]);
+		for (int j = 1; j < glmMat.getNCols(); j++) {
+			os << ", " << ((int) glmMat.getHostData()[i + j * glmMat.getNRows()]);
+		}
+
+		os << "]";
+		if (i < glmMat.getNRows() - 1) {
+			os << std::endl;
+		}
+	}
+	os << "]";
+
+	return os;
+}
 
 std::ostream& operator<<(std::ostream& os, const glmMatrix<num_t>& glmMat) {
 	for (int i = 0; i < glmMat.getNRows(); i++) {

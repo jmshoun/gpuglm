@@ -278,7 +278,9 @@ void vectorMultiply(glmVector<num_t> *a, glmVector<num_t> *b,
 		glmVector<num_t> *c);
 
 // Printing ///////////////////////////////////////////////////////////////////
+std::ostream& operator<<(std::ostream& os, const glmVector<factor_t>& glmVec);
 std::ostream& operator<<(std::ostream& os, const glmVector<num_t>& glmVec);
+std::ostream& operator<<(std::ostream& os, const glmMatrix<factor_t>& glmMat);
 std::ostream& operator<<(std::ostream& os, const glmMatrix<num_t>& glmMat);
 
 #endif /* GLMARRAY_H_ */

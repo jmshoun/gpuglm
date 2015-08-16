@@ -17,11 +17,25 @@ glmData::glmData(glmVector<num_t> *_y, glmMatrix<num_t> *_xNumeric,
 glmData::~glmData() {
 	delete y;
 
-	if (xNumeric != NULL) 	{ delete xNumeric; }
-	if (xFactor != NULL) 	{ delete xFactor; }
-	if (weights != NULL) 	{ delete weights; }
+	if (xNumeric != NULL) 		{ delete xNumeric; }
+	if (xFactor != NULL) 		{ delete xFactor; }
+	if (factorOffsets != NULL)	{ delete factorOffsets; }
+	if (weights != NULL) 		{ delete weights; }
 }
 
-int glmData::getNObs(void) {
+int glmData::getNObs(void) const {
 	return y->getLength();
+}
+
+int glmData::getNFactors(void) const {
+	return factorOffsets->getLength();
+}
+
+factor_t* glmData::getFactorColumn(int index) const {
+	return xFactor->getDeviceElement(0, index);
+}
+
+int glmData::getFactorOffset(int index) const {
+	int* hostData = factorOffsets->getHostData();
+	return hostData[index];
 }

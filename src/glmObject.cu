@@ -49,6 +49,38 @@ glmObject::~glmObject() {
 	CUSOLVER_WRAP(cusolverDnDestroy(solverHandle));
 }
 
+// CUDA Kernels Used by Updating Functions ////////////////////////////////////
+
+__global__ void factorProductKernel(int n, factor_t *factor, num_t *numeric,
+		num_t *result) {
+	int i;
+	factor_t factorValue;
+
+	for (i = 0; i < n; i++) {
+		factorValue = factor[i];
+		if (factorValue > 1) {
+			result[factorValue - 2] = numeric[i] + result[factorValue - 2];
+		}
+	}
+
+	return;
+}
+
+__global__ void factorPredictKernel(int n, factor_t *factor, num_t *betas,
+		num_t *result) {
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	factor_t factorValue;
+
+	if (i < n) {
+		factorValue = factor[i];
+		if (factorValue > 1) {
+			result[i] += betas[factorValue];
+		}
+	}
+
+	return;
+}
+
 // Updating Functions /////////////////////////////////////////////////////////
 
 void glmObject::solve(void) {
@@ -83,11 +115,8 @@ void glmObject::solve(void) {
 }
 
 void glmObject::updateHessian(void) {
-	glmMatrix<num_t> *xNumeric = data->getXNumeric();
-	glmVector<num_t> *xColumn;
 	glmVector<num_t> *weights = data->getWeights();
 	varianceFunction variance = family->getVariance();
-	int numericCols = xNumeric->getNCols();
 
 	CUBLAS_WRAP(cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
 
@@ -98,10 +127,26 @@ void glmObject::updateHessian(void) {
 		vectorMultiply(yVar, weights, yVar);
 	}
 
-	// First, handle the intercept
-	vectorSum(yVar, hessian, nBeta * nBeta - 1);
+	this->updateHessianInterceptIntercept();
+	this->updateHessianInterceptNumeric();
+	this->updateHessianInterceptFactor();
+	this->updateHessianNumericNumeric();
+	this->updateHessianNumericFactor();
+	this->updateHessianFactorFactor();
 
-	// Next, take care of the intercept * numeric terms
+	CUBLAS_WRAP(cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+
+	return;
+}
+
+void glmObject::updateHessianInterceptIntercept(void) {
+	vectorSum(yVar, hessian, nBeta * nBeta - 1);
+	return;
+}
+
+void glmObject::updateHessianInterceptNumeric(void) {
+	glmMatrix<num_t> *xNumeric = data->getXNumeric();
+
 	for (int i = 0; i < xNumeric->getNCols(); i++) {
 		CUBLAS_WRAP(DOT(handle, nObs,
 				yVar->getDeviceData(), 1,
@@ -109,7 +154,18 @@ void glmObject::updateHessian(void) {
 				hessian->getDeviceElement(nBeta - 1, i)));
 	}
 
-	// Finally, handle the numeric * numeric terms
+	return;
+}
+
+void glmObject::updateHessianInterceptFactor(void) {
+	return;
+}
+
+void glmObject::updateHessianNumericNumeric(void) {
+	glmMatrix<num_t> *xNumeric = data->getXNumeric();
+	glmVector<num_t> *xColumn;
+	int numericCols = xNumeric->getNCols();
+
 	for (int i = 0; i < numericCols; i++) {
 		xColumn = xNumeric->getDeviceColumn(i);
 		vectorMultiply(yVar, xColumn, xScratch);
@@ -123,8 +179,14 @@ void glmObject::updateHessian(void) {
 		}
 	}
 
-	CUBLAS_WRAP(cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+	return;
+}
 
+void glmObject::updateHessianNumericFactor(void) {
+	return;
+}
+
+void glmObject::updateHessianFactorFactor(void) {
 	return;
 }
 
@@ -158,10 +220,35 @@ void glmObject::updateGradient(void) {
 	}
 
 	// Calculate yDelta %*% xNumeric
-	xNumeric->columnProduct(handle, yDelta, gradient);
+	if (data->getXNumeric() != NULL) {
+		xNumeric->columnProduct(handle, yDelta, gradient);
+	}
+
+	// Calculate yDelta %*% xFactor
+	if (data->getXFactor() != NULL) {
+		for (int i = 0; i < data->getNFactors(); i++) {
+			this->updateGradientFactor(i);
+		}
+	}
 
 	// Calculate the intercept term of the gradient
 	vectorSum(yDelta, gradient, nBeta - 1);
+
+	gradient->copyDeviceToHost();
+	std::cout << *(gradient) << std::endl;
+
+	return;
+}
+
+void glmObject::updateGradientFactor(int index) {
+	int gradientOffset = data->getFactorOffset(index) + 2;
+	factor_t *factorColumn = data->getFactorColumn(index);
+
+	CUDA_WRAP(cudaMemset(gradient->getDeviceElement(gradientOffset),
+			0, 2 * sizeof(num_t)));
+	factorProductKernel<<<1, 1>>>(nObs, factorColumn, yDelta->getDeviceData(),
+			gradient->getDeviceElement(gradientOffset));
+	CUDA_WRAP(cudaPeekAtLastError());
 
 	return;
 }
@@ -171,11 +258,37 @@ void glmObject::updatePredictions(void) {
 	glmVector<num_t> *beta = results->getBeta();
 	linkFunction invLink = family->getInvLink();
 
-	xNumeric->rowProduct(handle, beta, predictions);
+	if (xNumeric != NULL) {
+		xNumeric->rowProduct(handle, beta, predictions);
+	}
+
+	if (data->getXFactor() != NULL) {
+		for (int i = 0; i < data->getNFactors(); i++) {
+			this->predictFactor(i);
+		}
+	}
+
 	// Add in the intercept
 	beta->copyDeviceToHost();
 	vectorAddScalar(predictions, beta->getHostData()[nBeta - 1], predictions);
 	(*invLink)(predictions, predictions, 0.0);
+
+	return;
+}
+
+void glmObject::predictFactor(int index) {
+	glmVector<num_t> *beta = results->getBeta();
+	linkFunction invLink = family->getInvLink();
+
+	int betaOffset = data->getFactorOffset(index);
+	factor_t *factorColumn = data->getFactorColumn(index);
+	int numBlocks = nObs / THREADS_PER_BLOCK +
+			(nObs % THREADS_PER_BLOCK ? 1 : 0);
+
+	factorPredictKernel<<<numBlocks, THREADS_PER_BLOCK>>>(nObs,
+			factorColumn, beta->getDeviceData() + betaOffset,
+			predictions->getDeviceData());
+	CUDA_WRAP(cudaPeekAtLastError());
 
 	return;
 }

@@ -37,6 +37,16 @@ protected:
 	cublasHandle_t handle;
 	cusolverDnHandle_t solverHandle;
 
+	void updateGradientFactor(int index);
+	void predictFactor(int index);
+
+	void updateHessianInterceptIntercept(void);
+	void updateHessianInterceptNumeric(void);
+	void updateHessianInterceptFactor(void);
+	void updateHessianNumericNumeric(void);
+	void updateHessianNumericFactor(void);
+	void updateHessianFactorFactor(void);
+
 public:
 	// Constructors / Destructros /////////////////////////////////////////////
 	glmObject(glmData *_data, glmFamily *_family, glmControl *_control,

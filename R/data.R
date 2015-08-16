@@ -71,7 +71,13 @@
         length()
     })
     
-    initial.offset + c(0, head(factor.level.counts - 1, -1))
+    factor.level.counts %>%
+      `-`(1) %>%                        # n - 1 levels in design matrix
+      head(-1) %>%                      # don't need an offset from the last element
+      c(0, .) %T>%                       # but we do need an offset from the first element
+      cumsum() %>%                      # stack all offsets together
+      `+`(initial.offset) %>%           # account for numeric terms
+      `-`(2)                            # account for fact that first non-base term is label 2
   }
   
   .main()
