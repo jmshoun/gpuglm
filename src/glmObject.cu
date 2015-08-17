@@ -84,7 +84,7 @@ __global__ void factorPredictKernel(int n, factor_t *factor, num_t *betas,
 // Updating Functions /////////////////////////////////////////////////////////
 
 void glmObject::solve(void) {
-	num_t maxDelta = 1000.0;
+	num_t maxDelta = control->getTolerance() * 10;
 	num_t thisDelta;
 	num_t *hostBetaDelta = betaDelta->getHostData();
 
@@ -215,7 +215,7 @@ void glmObject::updateHessianNumericFactor(void) {
 	glmMatrix<num_t> *xNumeric = data->getXNumeric();
 	glmVector<num_t> *xColumn;
 	int numericCols = xNumeric->getNCols();
-	int indexOffset;
+	int indexOffset, factorLength;
 	factor_t *factorColumn;
 	num_t *tempResults;
 
@@ -228,16 +228,19 @@ void glmObject::updateHessianNumericFactor(void) {
 					factorIndex++) {
 			factorColumn = data->getFactorColumn(factorIndex);
 			indexOffset = data->getFactorOffset(factorIndex) + 2;
+			factorLength = data->getFactorLength(factorIndex);
 
-			CUDA_WRAP(cudaMalloc((void **) &tempResults, 1 * sizeof(num_t)));
-			CUDA_WRAP(cudaMemset(tempResults, 0, 1 * sizeof(num_t)));
+			CUDA_WRAP(cudaMalloc((void **) &tempResults,
+					factorLength * sizeof(num_t)));
+			CUDA_WRAP(cudaMemset(tempResults, 0,
+					factorLength * sizeof(num_t)));
 
 			factorProductKernel<<<1, 1>>>(nObs, factorColumn,
 					xScratch->getDeviceData(),
 					tempResults);
 			CUDA_WRAP(cudaPeekAtLastError());
 
-			for (int i = 0; i < 1; i++) {
+			for (int i = 0; i < factorLength; i++) {
 				cudaMemcpy(hessian->getDeviceElement(numericIndex, indexOffset + i),
 						tempResults + i,
 						sizeof(num_t),
@@ -252,13 +255,14 @@ void glmObject::updateHessianNumericFactor(void) {
 }
 
 void glmObject::updateHessianFactorFactor(void) {
-	int indexOffset;
+	int indexOffset, factorLength;
 
 	for (int i = 0; i < data->getNFactors(); i++) {
 		indexOffset = data->getFactorOffset(i) + 2;
+		factorLength = data->getFactorLength(i);
 		for (int j = 0; j < data->getNFactors(); j++) {
 			if (i == j) {
-				for (int k = 0; k < 1; k++) {
+				for (int k = 0; k < factorLength; k++) {
 					CUDA_WRAP(cudaMemcpy(hessian->getDeviceElement(indexOffset + k, indexOffset + k),
 							hessian->getDeviceElement(indexOffset + k, nBeta - 1),
 							sizeof(num_t),
@@ -323,10 +327,12 @@ void glmObject::updateGradient(void) {
 
 void glmObject::updateGradientFactor(int index) {
 	int gradientOffset = data->getFactorOffset(index) + 2;
+	int factorLength = data->getFactorLength(index);
 	factor_t *factorColumn = data->getFactorColumn(index);
+	std::cout << factorLength << std::endl;
 
-	CUDA_WRAP(cudaMemset(gradient->getDeviceElement(gradientOffset),
-			0, 1 * sizeof(num_t)));
+	CUDA_WRAP(cudaMemset(gradient->getDeviceElement(gradientOffset), 0,
+			factorLength * sizeof(num_t)));
 	factorProductKernel<<<1, 1>>>(nObs, factorColumn, yDelta->getDeviceData(),
 			gradient->getDeviceElement(gradientOffset));
 	CUDA_WRAP(cudaPeekAtLastError());
