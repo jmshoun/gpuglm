@@ -80,7 +80,7 @@ glmMatrix<factor_t>* rToFactorMatrix(SEXP rVectorList) {
 
 // R object to C++ object conversion //////////////////////////////////////////
 
-template <> glmObject* Rcpp::as(SEXP objectSexp) {
+template <> glmObjectNR* Rcpp::as(SEXP objectSexp) {
 	List objectList = List(objectSexp);
 
 	glmData *data = as<glmData*>(objectList["data"]);
@@ -88,7 +88,7 @@ template <> glmObject* Rcpp::as(SEXP objectSexp) {
 	glmControl *control = as<glmControl*>(objectList["control"]);
 	glmVector<num_t> *startingBeta = rToNumVector(objectList["starting.beta"]);
 
-	return new glmObject(data, family, control, startingBeta);
+	return new glmObjectNR(data, family, control, startingBeta);
 }
 
 template <> glmFamily* Rcpp::as(SEXP familySexp) {

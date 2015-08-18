@@ -7,13 +7,13 @@
 ##' method that is implemented, but \code{BFGS} and \code{L-BFGS} will be implemented eventually.
 ##' @param max.iterations The maximum number of parameter update iterations for the algorithm. In
 ##' general, \code{IRLS} will converge in fewer iterations than the other methods.
-##' @param tolerance The convergence threshold for the algorithm -- defined as the \eqn{L_{2}} norm 
+##' @param tolerance The convergence threshold for the algorithm -- defined as the \eqn{L_{0}} norm 
 ##' of the change in the parameter vector between consecutive iterations of the algorithm.
 ##' @return A object of class \code{gpuglm_control}.
 gpuglm_control <- function(fit.method='IRLS', max.iterations, tolerance) {
-  max.iterations.defaults <- c(IRLS=10,
-                               BFGS=30,
-                               `L-BFGS`=40)
+  max.iterations.defaults <- c(IRLS=20,
+                               BFGS=40,
+                               `L-BFGS`=50)
   tolerance.defaults <- c(IRLS=1e-6,
                           BFGS=1e-6,
                           `L-BFGS`=1e-6)

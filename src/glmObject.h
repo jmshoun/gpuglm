@@ -3,7 +3,6 @@
 #define GLMOBJECT_H_
 
 #include <cublas_v2.h>
-#include <cusolverDn.h>
 
 #include "glmData.h"
 #include "glmFamily.h"
@@ -24,31 +23,21 @@ protected:
 
 	glmVector<num_t> *predictions;
 	glmVector<num_t> *yDelta;
-	glmVector<num_t> *yVar;
-	glmVector<num_t> *xScratch;
 	glmVector<num_t> *gradient;
 	glmVector<num_t> *betaDelta;
-	glmMatrix<num_t> *hessian;
-
-	num_t *workspace;
-	int workspaceSize;
-	int *devInfo;
 
 	cublasHandle_t handle;
-	cusolverDnHandle_t solverHandle;
 
-	void updateGradientFactor(int index);
-	void predictFactor(int index);
+	// Internal Updating Functions ////////////////////////////////////////////
+	void updateGradientIntercept(void);
+	void updateGradientXNumeric(void);
+	void updateGradientXFactor(void);
+	void updateGradientSingleFactor(int index);
 
-	void updateHessianInterceptIntercept(void);
-	void updateHessianInterceptNumeric(void);
-	void updateHessianInterceptFactor(void);
-	void updateHessianNumericNumeric(void);
-	void updateHessianNumericFactor(void);
-	void updateHessianFactorFactor(void);
+	void updatePredictionFactor(int index);
 
 public:
-	// Constructors / Destructros /////////////////////////////////////////////
+	// Constructors / Destructors /////////////////////////////////////////////
 	glmObject(glmData *_data, glmFamily *_family, glmControl *_control,
 			glmVector<num_t> *_startingBeta);
 	~glmObject();
@@ -56,7 +45,6 @@ public:
 	// Updating Functions /////////////////////////////////////////////////////
 	void updateGradient(void);
 	void updateHessian(void);
-	void solveHessian(void);
 	void updatePredictions(void);
 
 	void solve(void);
@@ -67,11 +55,6 @@ public:
 	glmVector<num_t>* getGradient(void) {
 		gradient->copyDeviceToHost();
 		return gradient;
-	};
-
-	glmMatrix<num_t>* getHessian(void) {
-		hessian->copyDeviceToHost();
-		return hessian;
 	};
 
 	glmVector<num_t>* getPredictions(void) {

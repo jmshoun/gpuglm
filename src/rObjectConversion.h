@@ -2,10 +2,10 @@
 #define ROBJECTCONVERSION_H_
 
 #include <RcppCommon.h>
-#include "glmObject.h"
+#include "glmObjectNR.h"
 
 namespace Rcpp {
-	template <> glmObject* as(SEXP objectSexp);
+	template <> glmObjectNR* as(SEXP objectSexp);
 	template <> glmFamily* as(SEXP familySexp);
 	template <> glmData* as(SEXP dataSexp);
 	template <> glmControl* as(SEXP controlSexp);

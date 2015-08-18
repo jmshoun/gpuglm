@@ -30,7 +30,7 @@ SEXP cpp_gpu_glm(SEXP objectSexp) {
 	print_gpu_status();
 
 	try {
-		glmObject *glmObj = as<glmObject*>(objectSexp);
+		glmObjectNR *glmObj = as<glmObjectNR*>(objectSexp);
 		glmObj->solve();
 		results = wrap(*(glmObj->getResults()));
 
