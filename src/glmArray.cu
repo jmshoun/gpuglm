@@ -79,6 +79,24 @@ __global__ void vectorMultiplyKernel(int n, num_t *a, num_t *b, num_t *c) {
 	return;
 }
 
+__global__ void factorProductKernel(int n, int groupSize, factor_t *factor,
+		num_t *numeric, num_t *result) {
+	unsigned int offset = threadIdx.x;
+	unsigned int i;
+	factor_t factorValue;
+
+	for (i = offset * groupSize; i < (offset + 1) * groupSize; i++) {
+		if (i < n) {
+			factorValue = factor[i];
+			if (factorValue > 1) {
+				result[blockDim.x * (factorValue - 2) + offset] += numeric[i];
+			}
+		}
+	}
+
+	return;
+}
+
 // Vector Arithmetic Functions ////////////////////////////////////////////////
 
 void vectorSumSimple(int length, num_t *input, num_t *output) {
@@ -116,10 +134,8 @@ void vectorSumRecursive(int length, num_t *input, num_t *output) {
 	return;
 }
 
-void vectorSum(glmVector<num_t> *vector, glmArray<num_t> *result,
-		int resultIndex) {
-	vectorSumRecursive(vector->getLength(), vector->getDeviceData(),
-			result->getDeviceData() + resultIndex);
+void vectorSum(glmVector<num_t> *vector, num_t *result) {
+	vectorSumRecursive(vector->getLength(), vector->getDeviceData(), result);
 
 	return;
 }
@@ -159,6 +175,32 @@ void vectorMultiply(glmVector<num_t> *a, glmVector<num_t> *b,
 
 	vectorMultiplyKernel<<<numBlocks, THREADS_PER_BLOCK>>>(a->getLength(),
 			a->getDeviceData(), b->getDeviceData(), c->getDeviceData());
+
+	return;
+}
+
+// Factor Product Host-Side Function //////////////////////////////////////////
+
+void factorProduct(glmVector<factor_t> *factor, int numFactorLevels,
+		glmVector<num_t> *numeric, num_t *result, int stride) {
+	int n = factor->getLength();
+	int groupSize = n / THREADS_PER_BLOCK + (n % THREADS_PER_BLOCK ? 1 : 0);
+	int tempResultSize = sizeof(num_t) * THREADS_PER_BLOCK * numFactorLevels;
+	num_t *tempResult = NULL;
+
+	CUDA_WRAP(cudaMalloc((void **) &tempResult, tempResultSize));
+	CUDA_WRAP(cudaMemset((void *) tempResult, 0, tempResultSize));
+
+	factorProductKernel<<<1, THREADS_PER_BLOCK>>>(n, groupSize,
+			factor->getDeviceData(), numeric->getDeviceData(),
+			tempResult);
+
+	for (int i = 0; i < numFactorLevels; i++) {
+		vectorSumSimple(THREADS_PER_BLOCK, tempResult + THREADS_PER_BLOCK * i,
+				result + i * stride);
+	}
+
+	CUDA_WRAP(cudaFree(tempResult));
 
 	return;
 }

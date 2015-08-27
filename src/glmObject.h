@@ -34,7 +34,10 @@ protected:
 	void updateGradientXFactor(void);
 	void updateGradientSingleFactor(int index);
 
-	void updatePredictionFactor(int index);
+	void updatePredictionIntercept(void);
+	void updatePredictionXNumeric(void);
+	void updatePredictionXFactor(void);
+	void updatePredictionSingleFactor(int index);
 
 public:
 	// Constructors / Destructors /////////////////////////////////////////////

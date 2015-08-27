@@ -32,8 +32,12 @@ int glmData::getNFactors(void) const {
 	return factorOffsets->getLength();
 }
 
-factor_t* glmData::getFactorColumn(int index) const {
+factor_t* glmData::getRawFactorColumn(int index) const {
 	return xFactor->getDeviceElement(0, index);
+}
+
+glmVector<factor_t>* glmData::getFactorColumn(int index) const {
+	return xFactor->getDeviceColumn(index);
 }
 
 int glmData::getFactorOffset(int index) const {

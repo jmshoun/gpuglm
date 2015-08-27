@@ -267,8 +267,7 @@ void copyDeviceToDevice(glmVector<num_t> *destination,
 		glmVector<num_t> *source);
 
 // Vector Arithmetic //////////////////////////////////////////////////////////
-void vectorSum(glmVector<num_t> *vector, glmArray<num_t> *result,
-		int resultIndex = 0);
+void vectorSum(glmVector<num_t> *vector, num_t *result);
 void vectorAddScalar(glmVector<num_t> *a, num_t b, glmVector<num_t> *c);
 void vectorAdd(glmVector<num_t> *a, glmVector<num_t> *b,
 		glmVector<num_t> *c);
@@ -276,6 +275,9 @@ void vectorDifference(glmVector<num_t> *a, glmVector<num_t> *b,
 		glmVector<num_t> *c);
 void vectorMultiply(glmVector<num_t> *a, glmVector<num_t> *b,
 		glmVector<num_t> *c);
+
+void factorProduct(glmVector<factor_t> *factor, int numFactorLevels,
+		glmVector<num_t> *numeric, num_t *result, int stride=1);
 
 // Printing ///////////////////////////////////////////////////////////////////
 std::ostream& operator<<(std::ostream& os, const glmVector<factor_t>& glmVec);

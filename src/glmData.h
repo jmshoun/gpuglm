@@ -32,7 +32,8 @@ public:
 	// Derived Accessors //////////////////////////////////////////////////////
 	int getNObs(void) const;
 	int getNFactors(void) const;
-	factor_t* getFactorColumn(int index) const;
+	factor_t* getRawFactorColumn(int index) const;
+	glmVector<factor_t>* getFactorColumn(int index) const;
 	int getFactorOffset(int index) const;
 	int getFactorLength(int index) const;
 };

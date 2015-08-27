@@ -4,19 +4,23 @@
 
 glmObject::glmObject(glmData *_data, glmFamily *_family,
 		glmControl *_control, glmVector<num_t> *_startingBeta) {
+	// Construct member objects
 	data = _data;
 	family = _family;
 	control = _control;
 	results = new glmResults(_startingBeta);
 
+	// Set common dimensional parameters
 	nBeta = results->getNBeta();
 	nObs = data->getNObs();
 
+	// Create common vectors need in the workspace
 	gradient = new glmVector<num_t>(nBeta, true, true);
 	betaDelta = new glmVector<num_t>(nBeta, true, true);
 	yDelta = new glmVector<num_t>(nObs, true, true);
 	predictions = new glmVector<num_t>(nObs, true, true);
 
+	// Create CUBLAS handle
 	CUBLAS_WRAP(cublasCreate(&handle));
 
 	return;
@@ -36,21 +40,6 @@ glmObject::~glmObject() {
 }
 
 // CUDA Kernels Used by Updating Functions ////////////////////////////////////
-
-__global__ void factorProductKernel(int n, factor_t *factor, num_t *numeric,
-		num_t *result) {
-	int i;
-	factor_t factorValue;
-
-	for (i = 0; i < n; i++) {
-		factorValue = factor[i];
-		if (factorValue > 1) {
-			result[factorValue - 2] = numeric[i] + result[factorValue - 2];
-		}
-	}
-
-	return;
-}
 
 __global__ void factorPredictKernel(int n, factor_t *factor, num_t *betas,
 		num_t *result) {
@@ -92,7 +81,8 @@ void glmObject::updateGradient(void) {
 }
 
 void glmObject::updateGradientIntercept(void) {
-	vectorSum(yDelta, gradient, nBeta - 1);
+	num_t *interceptGradientElement = gradient->getDeviceElement(nBeta - 1);
+	vectorSum(yDelta, interceptGradientElement);
 	return;
 }
 
@@ -119,13 +109,10 @@ void glmObject::updateGradientXFactor(void) {
 void glmObject::updateGradientSingleFactor(int index) {
 	int gradientOffset = data->getFactorOffset(index) + 2;
 	int factorLength = data->getFactorLength(index);
-	factor_t *factorColumn = data->getFactorColumn(index);
+	glmVector<factor_t> *factorColumn = data->getFactorColumn(index);
 
-	CUDA_WRAP(cudaMemset(gradient->getDeviceElement(gradientOffset), 0,
-			factorLength * sizeof(num_t)));
-	factorProductKernel<<<1, 1>>>(nObs, factorColumn, yDelta->getDeviceData(),
+	factorProduct(factorColumn, factorLength, yDelta,
 			gradient->getDeviceElement(gradientOffset));
-	CUDA_WRAP(cudaPeekAtLastError());
 
 	return;
 }
@@ -133,34 +120,53 @@ void glmObject::updateGradientSingleFactor(int index) {
 // Prediction Functions ///////////////////////////////////////////////////////
 
 void glmObject::updatePredictions(void) {
-	glmMatrix<num_t> *xNumeric = data->getXNumeric();
-	glmVector<num_t> *beta = results->getBeta();
 	linkFunction invLink = family->getInvLink();
 
-	if (xNumeric != NULL) {
-		xNumeric->rowProduct(handle, beta, predictions);
-	}
+	this->updatePredictionXNumeric();
+	this->updatePredictionXFactor();
+	this->updatePredictionIntercept();
 
-	if (data->getXFactor() != NULL) {
-		for (int i = 0; i < data->getNFactors(); i++) {
-			this->updatePredictionFactor(i);
-		}
-	}
-
-	// Add in the intercept
-	beta->copyDeviceToHost();
-	vectorAddScalar(predictions, beta->getHostData()[nBeta - 1], predictions);
 	(*invLink)(predictions, predictions, 0.0);
 
 	return;
 }
 
-void glmObject::updatePredictionFactor(int index) {
+void glmObject::updatePredictionIntercept(void) {
+	glmVector<num_t> *beta = results->getBeta();
+
+	beta->copyDeviceToHost();
+	num_t intercept = beta->getHostData()[nBeta - 1];
+	vectorAddScalar(predictions, intercept, predictions);
+	return;
+}
+
+void glmObject::updatePredictionXNumeric(void) {
+	glmVector<num_t> *beta = results->getBeta();
+	glmMatrix<num_t> *xNumeric = data->getXNumeric();
+
+	if (xNumeric != NULL) {
+		xNumeric->rowProduct(handle, beta, predictions);
+	}
+
+	return;
+}
+
+void glmObject::updatePredictionXFactor(void) {
+	if (data->getXFactor() != NULL) {
+		for (int i = 0; i < data->getNFactors(); i++) {
+			this->updatePredictionSingleFactor(i);
+		}
+	}
+
+	return;
+}
+
+void glmObject::updatePredictionSingleFactor(int index) {
 	glmVector<num_t> *beta = results->getBeta();
 	linkFunction invLink = family->getInvLink();
 
 	int betaOffset = data->getFactorOffset(index);
-	factor_t *factorColumn = data->getFactorColumn(index);
+	factor_t *factorColumn = data->getRawFactorColumn(index);
 	int numBlocks = nObs / THREADS_PER_BLOCK +
 			(nObs % THREADS_PER_BLOCK ? 1 : 0);
 
