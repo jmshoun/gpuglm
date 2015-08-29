@@ -9,7 +9,7 @@
 __global__ void cudaBinomVar(int n, num_t* input, num_t* output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
-#ifdef CAVE_FASTMATH
+#ifdef GPUGLM_FASTMATH
 		output[i] = __fmul_rn(input[i], __fsub_rn(1.0, input[i]));
 #else
 		output[i] = input[i] * (1.0 - input[i]);
@@ -21,7 +21,7 @@ __global__ void cudaBinomVar(int n, num_t* input, num_t* output) {
 __global__ void cudaNegBinVar(int n, num_t* input, num_t* output, num_t k) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
-#ifdef CAVE_FASTMATH
+#ifdef GPUGLM_FASTMATH
 		output[i] = __fadd_rn(input[i],
 				__fdividef(__fmul_rn(input[i], input[i]), k));
 #else
@@ -34,7 +34,7 @@ __global__ void cudaNegBinVar(int n, num_t* input, num_t* output, num_t k) {
 __global__ void cudaSqVar(int n, num_t* input, num_t* output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
-#ifdef CAVE_FASTMATH
+#ifdef GPUGLM_FASTMATH
 		output[i] = __fmul_rn(input[i], input[i]);
 #else
 		output[i] = input[i] * input[i];
@@ -46,7 +46,7 @@ __global__ void cudaSqVar(int n, num_t* input, num_t* output) {
 __global__ void cudaCubeVar(int n, num_t* input, num_t* output) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < n) {
-#ifdef CAVE_FASTMATH
+#ifdef GPUGLM_FASTMATH
 		output[i] = __fmul_rn(input[i], __fmul_rn(input[i], input[i]));
 #else
 		output[i] = input[i] * input[i] * input[i];

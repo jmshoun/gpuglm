@@ -5,6 +5,9 @@ linkFunctions.o: linkFunctions.cu
 
 varianceFunctions.o: varianceFunctions.cu
 	/usr/local/cuda/bin/nvcc -Xcompiler -fPIC -c varianceFunctions.cu -o varianceFunctions.o -lcudart
+	
+cumulantFunctions.o: cumulantFunctions.cu
+	/usr/local/cuda/bin/nvcc -Xcompiler -fPIC -c cumulantFunctions.cu -o cumulantFunctions.o -lcudart
 
 glmArray.o: glmArray.cu
 	/usr/local/cuda/bin/nvcc -Xcompiler -fPIC -c glmArray.cu -o glmArray.o -lcudart -lcublas
@@ -30,8 +33,8 @@ rObjectConversion.o: rObjectConversion.cpp
 rcpp_glm_interface.o: rcpp_glm_interface.cpp
 	g++ -I/home/mark/R/include -DNDEBUG  -I/usr/local/include -I"/home/mark/R/library/Rcpp/include" -fpic -g -O2 -c rcpp_glm_interface.cpp -o rcpp_glm_interface.o -lcudart -I/usr/local/cuda/include
 
-gpuglm.so: RcppExports.o _test_link_and_var.o linkFunctions.o varianceFunctions.o rcpp_glm_interface.o glmData.o glmObject.o glmObjectNR.o glmArray.o rObjectConversion.o
-	g++ -shared -L/home/mark/R/lib -L/usr/local/lib -o gpuglm.so RcppExports.o _test_link_and_var.o linkFunctions.o varianceFunctions.o glmData.o glmObject.o glmObjectNR.o glmArray.o rcpp_glm_interface.o rObjectConversion.o -L/home/mark/R/lib -L/usr/local/cuda/lib64 -lR -lcudart -lcublas -lcusolver
+gpuglm.so: RcppExports.o _test_link_and_var.o linkFunctions.o varianceFunctions.o rcpp_glm_interface.o glmData.o glmObject.o glmObjectNR.o glmArray.o rObjectConversion.o cumulantFunctions.o
+	g++ -shared -L/home/mark/R/lib -L/usr/local/lib -o gpuglm.so RcppExports.o _test_link_and_var.o linkFunctions.o varianceFunctions.o glmData.o glmObject.o glmObjectNR.o glmArray.o rcpp_glm_interface.o rObjectConversion.o cumulantFunctions.o -L/home/mark/R/lib -L/usr/local/cuda/lib64 -lR -lcudart -lcublas -lcusolver
 
 clean:
 	rm *.o *.so

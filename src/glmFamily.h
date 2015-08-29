@@ -6,6 +6,7 @@
 
 #include "linkFunctions.h"
 #include "varianceFunctions.h"
+#include "cumulantFunctions.h"
 
 class glmFamily {
 
@@ -14,6 +15,7 @@ protected:
 	linkFunction invLink;
 	linkFunction linkDerivative;
 	varianceFunction variance;
+	cumulantFunction cumulant;
 
 	bool isCanonical;
 	num_t scaleParameter;
@@ -25,6 +27,7 @@ public:
 		link = getLinkFunction(linkName);
 		invLink = getInvLinkFunction(linkName);
 		linkDerivative = getLinkDerivativeFunction(linkName);
+		cumulant = getCumulantFunction(linkName);
 		variance = getVarianceFunction(varianceName);
 
 		isCanonical = _isCanonical;
@@ -38,6 +41,7 @@ public:
 	linkFunction getInvLink(void) const { return invLink; };
 	linkFunction getLinkDerivative(void) const { return linkDerivative; };
 	varianceFunction getVariance(void) const { return variance; };
+	cumulantFunction getCumulant(void) const { return cumulant; };
 	bool getIsCanonical(void) const { return isCanonical; };
 	num_t getScaleParameter(void) const { return scaleParameter; };
 };
