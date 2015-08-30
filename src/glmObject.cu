@@ -77,6 +77,9 @@ void glmObject::updateGradient(void) {
 	this->updateGradientXFactor();
 	this->updateGradientIntercept();
 
+//	gradient->copyDeviceToHost();
+//	std::cout << *gradient << std::endl;
+
 	return;
 }
 

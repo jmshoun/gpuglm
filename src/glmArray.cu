@@ -97,6 +97,29 @@ __global__ void factorProductKernel(int n, int groupSize, factor_t *factor,
 	return;
 }
 
+__global__ void doubleFactorProductKernel(int n, int groupSize,
+		factor_t *factor1, factor_t *factor2,
+		int factor2Size, num_t *numeric, num_t *result) {
+	unsigned int offset = threadIdx.x;
+	unsigned int i;
+	factor_t factor1Value, factor2Value, combinedFactorValue;
+
+	for (i = offset * groupSize; i < (offset + 1) * groupSize; i++) {
+		if (i < n) {
+			factor1Value = factor1[i];
+			factor2Value = factor2[i];
+			if ((factor1Value > 1) && (factor2Value > 1)) {
+				combinedFactorValue = (factor1Value - 2) * factor2Size +
+					(factor2Value - 1);
+				result[blockDim.x * (combinedFactorValue - 1) + offset] +=
+						numeric[i];
+			}
+		}
+	}
+
+	return;
+}
+
 // Vector Arithmetic Functions ////////////////////////////////////////////////
 
 void vectorSumSimple(int length, num_t *input, num_t *output) {
@@ -199,6 +222,39 @@ void factorProduct(glmVector<factor_t> *factor, int numFactorLevels,
 		vectorSumSimple(THREADS_PER_BLOCK, tempResult + THREADS_PER_BLOCK * i,
 				result + i * stride);
 	}
+
+	CUDA_WRAP(cudaFree(tempResult));
+
+	return;
+}
+
+void doubleFactorProduct(glmVector<factor_t> *factor1,
+		glmVector<factor_t> *factor2, int numFactor1Levels,
+		int numFactor2Levels, glmVector<num_t> *numeric, num_t *result,
+		int stride) {
+	int n = factor1->getLength();
+	int groupSize = n / THREADS_PER_BLOCK + (n % THREADS_PER_BLOCK ? 1 : 0);
+	int tempResultSize = sizeof(num_t) * THREADS_PER_BLOCK *
+			numFactor1Levels * numFactor2Levels;
+
+	num_t *tempResult = NULL;
+	CUDA_WRAP(cudaMalloc((void **) &tempResult, tempResultSize));
+	CUDA_WRAP(cudaMemset((void *) tempResult, 0, tempResultSize));
+
+	doubleFactorProductKernel<<<1, THREADS_PER_BLOCK>>>(n, groupSize,
+			factor1->getDeviceData(), factor2->getDeviceData(),
+			numFactor2Levels, numeric->getDeviceData(), tempResult);
+
+
+	for (int factor1Value = 0; factor1Value < numFactor1Levels; factor1Value++) {
+		for (int factor2Value = 0; factor2Value < numFactor2Levels; factor2Value++) {
+			vectorSumSimple(THREADS_PER_BLOCK,
+					tempResult + THREADS_PER_BLOCK *
+					(factor1Value * numFactor2Levels + factor2Value),
+					result + (factor2Value * stride + factor1Value));
+		}
+	}
+
 
 	CUDA_WRAP(cudaFree(tempResult));
 

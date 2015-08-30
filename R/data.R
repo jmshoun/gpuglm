@@ -47,6 +47,8 @@
       terms$factor.terms <- unsorted.terms[is.factor.term]
       terms$factor.offsets <- .set_factor_offsets(terms)
       terms$factor.lengths <- .set_factor_lengths(terms)
+      print(terms$factor.offsets)
+      print(terms$factor.lengths)
     }
     
     terms
@@ -71,7 +73,7 @@
       
     factor.level.counts %>%
       head(-1) %>%                      # don't need an offset from the last element
-      c(0, .) %T>%                      # but we do need an offset from the first element
+      c(0, .) %>%                      # but we do need an offset from the first element
       cumsum() %>%                      # stack all offsets together
       `+`(initial.offset) %>%           # account for numeric terms
       `-`(2)                            # account for fact that first non-base term is label 2

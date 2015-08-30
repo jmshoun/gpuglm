@@ -74,7 +74,7 @@ gpuglm <- function(formula, family=gpuglm_family(), data, weights,
       factor.betas <- list()
       
       for (i in 1:length(factor.terms)) {
-        factor.indices <- factor.offsets[i]:(factor.offsets[i] + factor.lengths[i] - 1) + 2
+        factor.indices <- factor.offsets[i]:(factor.offsets[i] + factor.lengths[i] - 1) + 3
         factor.betas[[names(factor.terms)[i]]] <- raw.beta[factor.indices]
         names(factor.betas[[names(factor.terms)[i]]]) <- levels(factor.terms[[i]])[-1]
       }

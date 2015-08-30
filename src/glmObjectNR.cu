@@ -187,19 +187,27 @@ void glmObjectNR::updateHessianNumericFactor(void) {
 }
 
 void glmObjectNR::updateHessianFactorFactor(void) {
-	int indexOffset, factorLength;
+	int indexOffset1, indexOffset2, factorLength1, factorLength2;
 
 	for (int i = 0; i < data->getNFactors(); i++) {
-		indexOffset = data->getFactorOffset(i) + 2;
-		factorLength = data->getFactorLength(i);
-		for (int j = 0; j < data->getNFactors(); j++) {
+		indexOffset1 = data->getFactorOffset(i) + 2;
+		factorLength1 = data->getFactorLength(i);
+		for (int j = i; j < data->getNFactors(); j++) {
 			if (i == j) {
-				for (int k = 0; k < factorLength; k++) {
-					CUDA_WRAP(cudaMemcpy(hessian->getDeviceElement(indexOffset + k, indexOffset + k),
-							hessian->getDeviceElement(indexOffset + k, nBeta - 1),
+				for (int k = 0; k < factorLength1; k++) {
+					CUDA_WRAP(cudaMemcpy(hessian->getDeviceElement(indexOffset1 + k, indexOffset1 + k),
+							hessian->getDeviceElement(indexOffset1 + k, nBeta - 1),
 							sizeof(num_t),
 							cudaMemcpyDeviceToDevice));
 				}
+			} else {
+				indexOffset2 = data->getFactorOffset(j) + 2;
+				factorLength2 = data->getFactorLength(j);
+				doubleFactorProduct(data->getFactorColumn(i),
+						data->getFactorColumn(j), factorLength1, factorLength2,
+						yVar,
+						hessian->getDeviceElement(indexOffset1, indexOffset2),
+						nBeta);
 			}
 		}
 	}

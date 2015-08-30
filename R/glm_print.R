@@ -10,7 +10,7 @@ print.gpuglm <- function(x, ...) {
   print(c(x$beta$intercept, x$beta$numeric))
   
   cat('\nFactor Coefficeints:\n')
-  for (i in length(x$beta$factor)) {
+  for (i in 1:length(x$beta$factor)) {
     cat(names(x$beta$factor)[i], '\n', sep='')
     print(x$beta$factor[[i]])
   }

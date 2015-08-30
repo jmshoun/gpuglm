@@ -278,6 +278,10 @@ void vectorMultiply(glmVector<num_t> *a, glmVector<num_t> *b,
 
 void factorProduct(glmVector<factor_t> *factor, int numFactorLevels,
 		glmVector<num_t> *numeric, num_t *result, int stride=1);
+void doubleFactorProduct(glmVector<factor_t> *factor1,
+		glmVector<factor_t> *factor2, int numFactor1Levels,
+		int numFactor2Levels, glmVector<num_t> *numeric, num_t *result,
+		int stride=1);
 
 // Printing ///////////////////////////////////////////////////////////////////
 std::ostream& operator<<(std::ostream& os, const glmVector<factor_t>& glmVec);
