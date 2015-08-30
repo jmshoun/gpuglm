@@ -42,25 +42,45 @@ gpuglm <- function(formula, family=gpuglm_family(), data, weights,
       if (!(results$converged)) {
         warning('Model failed to converge')
       }
-      .format_results(results, data=data)
+      .format_results(results,glm.object)
     }
   }
   
-  .format_results <- function(data, results) {
+  .format_results <- function(results, initial.object) {
     results$status <- NULL
       
-    old.beta <- results$beta
-    intercept <- old.beta[length(old.beta)] %>%
+    raw.beta <- results$beta
+    intercept <- raw.beta[length(raw.beta)] %>%
       magrittr::set_names('(Intercept)')
-    numeric.betas <- old.beta[1:(length(old.beta) - 1)] %>%
-      magrittr::set_names(names(data$terms$numeric.terms))
-    results$beta <- list(intercept=intercept,
-                         numeric=numeric.betas)
-    results$call <- raw.call
+    numeric.betas <- raw.beta[1:length(initial.object$data$terms$numeric.terms)] %>%
+      magrittr::set_names(names(initial.object$data$terms$numeric.terms))
+    factor.betas <- .format_factor_betas(raw.beta, initial.object)
     
+    results$beta <- list(intercept=intercept,
+                         numeric=numeric.betas,
+                         factor=factor.betas)
+    results$call <- raw.call
     attr(results, 'class') <- 'gpuglm'
     
     results
+  }
+  
+  .format_factor_betas <- function(raw.beta, initial.object) {
+    factor.betas <- NULL
+    if (!is.null(initial.object$data$terms$factor.offsets)) {
+      factor.terms <- initial.object$data$terms$factor.terms
+      factor.offsets <- initial.object$data$terms$factor.offsets
+      factor.lengths <- initial.object$data$terms$factor.lengths
+      factor.betas <- list()
+      
+      for (i in 1:length(factor.terms)) {
+        factor.indices <- factor.offsets[i]:(factor.offsets[i] + factor.lengths[i] - 1) + 2
+        factor.betas[[names(factor.terms)[i]]] <- raw.beta[factor.indices]
+        names(factor.betas[[names(factor.terms)[i]]]) <- levels(factor.terms[[i]])[-1]
+      }
+    }
+    
+    factor.betas
   }
   
   raw.call <- match.call()
