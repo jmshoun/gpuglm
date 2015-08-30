@@ -6,10 +6,10 @@
 ##' 
 ##' @param formula A formula that specifies the model structure; entirely analogous to the
 ##' corresponding argument in \code{glm}.
+##' @param family An object of class \code{gpuglm_family}.
 ##' @param data A \code{data.frame} to fit the model with. Expressions in \code{formula} are first
 ##' evaluated in the context of \code{data}, and if no match is found, then in the function
 ##' environment.
-##' @param family An object of class \code{gpuglm_family}.
 ##' @param weights A vector with weights for each observation. Must be the same as each of the
 ##' terms in \code{data}. If \code{NULL}, all observations are assumed to have equal weight.
 ##' @param control An object of class \code{gpuglm_control} that controls the fitting algorithm and
@@ -20,9 +20,8 @@
 ##' 
 ##' @return An object of class \code{gpuglm}.
 
-gpuglm <- function(formula, data, family=gpuglm_family(), weights, 
+gpuglm <- function(formula, family=gpuglm_family(), data, weights, 
                     control=gpuglm_control(), prior.fit=NULL) {
-  
   .main <- function() {
     data <- .create_glm_data(formula, data, weights.call)
     if (is.character(family)) {
@@ -57,12 +56,14 @@ gpuglm <- function(formula, data, family=gpuglm_family(), weights,
       magrittr::set_names(names(data$terms$numeric.terms))
     results$beta <- list(intercept=intercept,
                          numeric=numeric.betas)
+    results$call <- raw.call
     
     attr(results, 'class') <- 'gpuglm'
     
     results
   }
   
+  raw.call <- match.call()
   if (missing(weights)) {
     weights.call <- NULL
   } else {
