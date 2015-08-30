@@ -47,8 +47,6 @@
       terms$factor.terms <- unsorted.terms[is.factor.term]
       terms$factor.offsets <- .set_factor_offsets(terms)
       terms$factor.lengths <- .set_factor_lengths(terms)
-      print(terms$factor.offsets)
-      print(terms$factor.lengths)
     }
     
     terms
