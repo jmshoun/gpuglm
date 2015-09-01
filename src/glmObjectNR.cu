@@ -4,7 +4,6 @@
 
 glmObjectNR::~glmObjectNR() {
 	delete hessian;
-	delete xScratch;
 
 	CUDA_WRAP(cudaFree(workspace));
 	CUDA_WRAP(cudaFree(devInfo));
@@ -41,6 +40,7 @@ void glmObjectNR::solve(void) {
 
 	if (maxDelta < control->getTolerance()) {
 		results->setConverged(true);
+		this->updateLogLikelihood();
 	}
 
 	return;
@@ -72,7 +72,7 @@ void glmObjectNR::updateHessian(void) {
 	CUBLAS_WRAP(cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
 
 	// Calculate the variance of the observations
-	(*variance)(predictions, yVar, 0.0);
+	(*variance)(responsePredictions, yVar, 0.0);
 	// Handle weights of yVar if necessary
 	if (weights != NULL) {
 		vectorMultiply(yVar, weights, yVar);

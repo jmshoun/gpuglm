@@ -21,8 +21,10 @@ protected:
 	glmControl *control;
 	glmResults *results;
 
-	glmVector<num_t> *predictions;
+	glmVector<num_t> *linkPredictions;
+	glmVector<num_t> *responsePredictions;
 	glmVector<num_t> *yDelta;
+	glmVector<num_t> *xScratch;
 	glmVector<num_t> *gradient;
 	glmVector<num_t> *betaDelta;
 
@@ -34,10 +36,12 @@ protected:
 	void updateGradientXFactor(void);
 	void updateGradientSingleFactor(int index);
 
-	void updatePredictionIntercept(void);
-	void updatePredictionXNumeric(void);
-	void updatePredictionXFactor(void);
-	void updatePredictionSingleFactor(int index);
+
+	void updateLinkPredictions(void);
+	void updateLinkPredictionIntercept(void);
+	void updateLinkPredictionXNumeric(void);
+	void updateLinkPredictionXFactor(void);
+	void updateLinkPredictionSingleFactor(int index);
 
 public:
 	// Constructors / Destructors /////////////////////////////////////////////
@@ -49,6 +53,7 @@ public:
 	void updateGradient(void);
 	void updateHessian(void);
 	void updatePredictions(void);
+	void updateLogLikelihood(void);
 
 	void solve(void);
 
@@ -60,10 +65,15 @@ public:
 		return gradient;
 	};
 
-	glmVector<num_t>* getPredictions(void) {
-		predictions->copyDeviceToHost();
-		return predictions;
+	glmVector<num_t>* getLinkPredictions(void) {
+		linkPredictions->copyDeviceToHost();
+		return linkPredictions;
 	};
+
+	glmVector<num_t>* getResponsePredictions(void) {
+			responsePredictions->copyDeviceToHost();
+			return responsePredictions;
+		};
 };
 
 #endif /* GLMOBJECT_H_ */

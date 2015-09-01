@@ -7,7 +7,6 @@
 
 class glmObjectNR : public glmObject {
 protected:
-	glmVector<num_t> *xScratch;
 	glmMatrix<num_t> *hessian;
 	glmVector<num_t> *yVar;
 
@@ -32,7 +31,6 @@ public:
 					_control, _startingBeta) {
 		hessian = new glmMatrix<num_t>(nBeta, nBeta, true, true, true);
 		yVar = yDelta;
-		xScratch = new glmVector<num_t>(nObs, true, true, true);
 
 		cusolverDnCreate(&solverHandle);
 

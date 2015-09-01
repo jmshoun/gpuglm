@@ -9,6 +9,7 @@ class glmResults {
 protected:
 	glmVector<num_t> *beta;
 	unsigned int numIterations;
+	num_t logLikelihood;
 	bool converged;
 
 public:
@@ -17,6 +18,7 @@ public:
 		beta = _startingBeta;
 		beta->setSharedHost(true);
 		numIterations = 0;
+		logLikelihood = 0.0;
 		converged = false;
 	}
 
@@ -25,9 +27,13 @@ public:
 	unsigned int getNumIterations(void) const { return numIterations; };
 	bool getConverged(void) const { return converged; };
 	int getNBeta(void) const { return beta->getLength(); };
+	num_t getLogLikelihood(void) const { return logLikelihood; };
 
 	void incrementNumIterations(void) { numIterations++; };
 	void setConverged(bool _converged) { converged = _converged; };
+	void setLogLikelihood(num_t _logLikelihood) {
+		logLikelihood = _logLikelihood;
+	};
 };
 
 #endif /* GLMRESULTS_H_ */

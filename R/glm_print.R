@@ -14,7 +14,10 @@ print.gpuglm <- function(x, ...) {
     cat(names(x$beta$factor)[i], '\n', sep='')
     print(x$beta$factor[[i]])
   }
-  cat('\n')
+  
+  cat('\nResidual Deviance: ', -2 * x$log.likelihood, 
+      ' AIC: ', -2 * (x$log.likelihood - length(coef(x))), 
+      '\n', sep='')
   
   invisible(x)
 }

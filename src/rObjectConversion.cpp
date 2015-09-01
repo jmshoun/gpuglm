@@ -162,6 +162,7 @@ template <> SEXP Rcpp::wrap(const glmResults &results) {
 	resultsList["beta"] = wrap(*(results.getBeta()));
 	resultsList["num.iterations"] = wrap(results.getNumIterations());
 	resultsList["converged"] = wrap(results.getConverged());
+	resultsList["log.likelihood"] = wrap(results.getLogLikelihood());
 	resultsList["status"] = "SUCCESS";
 
 	return wrap(resultsList);
